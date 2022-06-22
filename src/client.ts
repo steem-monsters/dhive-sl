@@ -9,7 +9,7 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log, isTxError, sleep, prependHttp, uniqueArray } from './utils';
+import { copy, LogLevel, log, isTxError, sleep, prependHttp } from './utils';
 import { PrivateKey } from './crypto';
 import { HiveEngineAPI, HiveEngineParameters } from './modules/hiveengine';
 import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';

@@ -14,7 +14,7 @@
         "test:int": "NODE_ENV=test jest -c jest.config.int.js --runInBand --detectOpenHandles",
         "test:unit": "ts-jest -c jest.config.ts --watchAll --maxWorkers=1",
         "test:watch": "ts-jest -c jest.config.int.js --silent --watchAll --detectOpenHandles",
-        "example:beacon": "NODE_ENV=development ts-node-dev --tree-kill --no-notify --respawn --transpile-only src/example/beacon.ts",
+        "example:beacon": "NODE_ENV=development ts-node-dev --tree-kill --no-notify --respawn --transpile-only src/example/beacon.example.ts",
         "dev": "NODE_ENV=development ts-node-dev --tree-kill --no-notify --respawn --transpile-only src/index.ts"
     },
     "author": "reichert-splinterlands",
