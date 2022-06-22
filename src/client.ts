@@ -361,7 +361,7 @@ export class Client {
         if (this.beacon.loadOnInitialize) {
             setTimeout(() => {
                 this.loadNodes();
-            }, 1);
+            }, 500);
         }
     }
 
