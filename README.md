@@ -16,58 +16,74 @@ npm install @splinterlands/dhive-sl
 
 ## Usage
 
-With TypeScript:
+```Typescript
+// Based on src/examples/beacon.example.ts
+// npm run example:beacon
 
-```typescript
-import { Client } from '@splinterlands/dhive-sl';
+import { Client, utils } from '@splinterlands/dhive-sl';
 
-const client = new Client(['https://api.hive.blog', 'https://api.hivekings.com', 'https://anyx.io', 'https://api.openhive.network']);
+const main = async () => {
+     /**
+     * Client 0 with no config
+     * Beacon service is used to load the best RPC nodes
+     * Nodes are refreshed every 300 seconds (5 Minutes) after loadNodes()
+     */
+    const client0 = new Client();
+    await client0.loadNodes();
+    utils.log(`0 - No config client: ${(await client0.database.getAccount('splinterlands')).name}`);
+    await utils.timeout(3 * 1000);
 
-for await (const block of client.blockchain.getBlocks()) {
-    console.log(`New block, id: ${block.block_id}`);
-}
-```
+    /**
+     * Client A with pre-defined nodes
+     * Beacon service is NOT used
+     */
+    const clientA = new Client({ nodes: ['wrong.hive-api.com', 'hived.splinterlands.com', 'hived-2.splinterlands.com'] });
+    utils.log(`A - Client: ${(await clientA.database.getAccount('splinterlands')).name}`);
+    await utils.timeout(3 * 1000);
 
-With JavaScript:
+    /**
+     * Client B with pre-defined nodes
+     * Beacon service is used to load the best RPC nodes
+     * Nodes are refreshed every 2 seconds after loadNodes()
+     */
+    const clientB = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'], beacon: { intervalTime: 2 } });
+    await clientB.loadNodes();
+    utils.log(`B - Client: ${(await clientB.database.getAccount('splinterlands')).name}`);
+    await utils.timeout(5 * 1000);
+    clientB.destroy(); // Clears intervals
 
-```javascript
-let dhive = require('@splinterlands/dhive-sl');
+    /**
+     * Client C with pre-defined nodes
+     * Beacon service is used to load the best RPC nodes
+     * Nodes are NOT refreshed due to 'manual' mode
+     */
+    const clientC = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'], beacon: { mode: 'manual' } });
+    await clientC.loadNodes();
+    utils.log(`C - Client: ${(await clientC.database.getAccount('splinterlands')).name}`);
+    await utils.timeout(5 * 1000);
 
-let client = new dhive.Client(['https://api.hive.blog', 'https://api.hivekings.com', 'https://anyx.io', 'https://api.openhive.network']);
-let key = dhive.PrivateKey.fromLogin('username', 'password', 'posting');
+    /**
+     * Client D with pre-defined nodes
+     * Beacon service is used ON NEW CLIENT (due to loadOnInitialize) to load the best RPC nodes
+     * Nodes are refreshed every 2 seconds after new Client()
+     */
+    const clientD = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'], beacon: { intervalTime: 2, loadOnInitialize: true } });
+    utils.log(`D - Client: ${(await clientD.database.getAccount('splinterlands')).name}`);
+    await utils.timeout(5 * 1000);
+    clientD.destroy(); // Clears intervals
 
-client.broadcast
-    .vote(
-        {
-            voter: 'username',
-            author: 'almost-digital',
-            permlink: 'dhive-is-the-best',
-            weight: 10000,
-        },
-        key,
-    )
-    .then(
-        function (result) {
-            console.log('Included in block: ' + result.block_num);
-        },
-        function (error) {
-            console.error(error);
-        },
-    );
-```
+    /**
+     * Client E with NO pre-defined nodes
+     * Beacon service is used ON NEW CLIENT (due to loadOnInitialize) to load the best RPC nodes
+     * Nodes are refreshed every 2 seconds after new Client()
+     */
+    const clientE = new Client({ beacon: { intervalTime: 2, loadOnInitialize: true } });
+    utils.log(`E - Client: ${(await clientE.database.getAccount('splinterlands')).name}`);
+    await utils.timeout(5 * 1000);
+    clientE.destroy(); // Clears intervals
 
-With ES2016 (node.js 7+):
+    utils.log('FINISHED');
+};
 
-```javascript
-const { Client } = require('@splinterlands/dhive-sl');
-
-const client = new Client(['https://api.hive.blog', 'https://api.hivekings.com', 'https://anyx.io', 'https://api.openhive.network']);
-
-async function main() {
-    const props = await client.database.getChainProperties();
-    console.log(`Maximum blocksize consensus: ${props.maximum_block_size} bytes`);
-    client.disconnect();
-}
-
-main().catch(console.error);
+main();
 ```
