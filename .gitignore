@@ -107,3 +107,5 @@ dist
 state.json
 state_se.json
 state_he.json
+
+.vscode/
