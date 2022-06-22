@@ -6,11 +6,10 @@ const main = async () => {
     const client0 = new Client();
     await client0.loadNodes();
     log(`0 - No config client: ${(await client0.database.getAccount('splinterlands')).name}`);
-
     await timeout(3 * 1000);
 
     // Client with pre-set nodes only
-    const clientA = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'] });
+    const clientA = new Client({ nodes: ['wrong.hive-api.com', 'hived.splinterlands.com', 'hived-2.splinterlands.com'] });
     log(`A - Client with pre-set nodes only: ${(await clientA.database.getAccount('splinterlands')).name}`);
     await timeout(3 * 1000);
 

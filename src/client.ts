@@ -9,7 +9,7 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log, isTxError, sleep, prependHttp } from './utils';
+import { copy, LogLevel, log, isTxError, sleep, prependHttp, timeout } from './utils';
 import { PrivateKey } from './crypto';
 import { HiveEngineAPI, HiveEngineParameters } from './modules/hiveengine';
 import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';
@@ -115,9 +115,8 @@ export interface ClientOptions {
     /**
      * Send timeout, how long to wait in milliseconds before giving
      * up on a rpc call. Note that this is not an exact timeout,
-     * no in-flight requests will be aborted, they will just not
-     * be retried any more past the timeout.
-     * Can be set to 0 to retry forever. Defaults to 1000 ms.
+     * no in-flight requests will be aborted.
+     * Defaults to 1000 ms.
      */
     timeout?: number;
 
@@ -153,10 +152,6 @@ export interface ClientOptions {
      */
     skipTransactionQueue?: boolean;
 
-    /**
-     * Retry backoff function, returns milliseconds. Default = {@link defaultBackoff}.
-     */
-    backoff?: (tries: number) => number;
     /**
      * Node.js http(s) agent, use if you want http keep-alive.
      * Defaults to using https.globalAgent.
@@ -284,11 +279,6 @@ export class Client {
     private timeout: number;
 
     /**
-     * Backoff for RPC retry
-     */
-    private backoff: typeof defaultBackoff;
-
-    /**
      *  How often RPC nodes can throw errors before they're disabled
      */
     private rpcErrorLimit: number;
@@ -338,7 +328,6 @@ export class Client {
         this.addressPrefix = options.addressPrefix || DEFAULT_ADDRESS_PREFIX;
 
         this.timeout = options.timeout || 1000;
-        this.backoff = options.backoff || defaultBackoff;
         this.rpcErrorLimit = options.rpcErrorLimit || 10;
         this.transactionQueue = [];
 
@@ -430,6 +419,11 @@ export class Client {
      *
      */
     public async call(api: string, method: string, params: any = []): Promise<any> {
+        assert(
+            this.nodes.length > 0 || this.beacon.loadOnInitialize,
+            'options.nodes is empty and options.beacon.loadOnInitialize is false. Either set those or run client.loadNodes()',
+        );
+
         const request: RPCCall = {
             id: 0,
             jsonrpc: '2.0',
@@ -465,14 +459,13 @@ export class Client {
         if (this.options.agent) {
             opts.agent = this.options.agent;
         }
-        let fetchTimeout: any;
+
+        // Only for non-broadcast: return fast or abort
         if (api !== 'network_broadcast_api' && !method.startsWith('broadcast_transaction')) {
-            // bit of a hack to work around some nodes high error rates
-            // only effective in node.js (until timeout spec lands in browsers)
-            fetchTimeout = (tries) => (tries + 1) * 500;
+            opts.timeout = this.timeout;
         }
 
-        const { response }: { response: RPCResponse } = await this.retryingFetch(opts, `${api}.${method}`, params, fetchTimeout);
+        const { response }: { response: RPCResponse } = await this.retryingFetch(opts, api, method, params);
 
         // resolve FC error messages into something more readable
         if (response.error) {
@@ -513,41 +506,40 @@ export class Client {
     /**
      * Fetch API wrapper that retries until timeout is reached.
      */
-    public async retryingFetch(opts: any, method: string, params: any, fetchTimeout?: (tries: number) => number) {
-        const start = Date.now();
-        let tries = 0;
-
+    public async retryingFetch(opts: any, api: string, method: string, params: any) {
         do {
-            try {
-                for (let i = 0; i < this.nodes.length; i++) {
-                    const hasError = this.nodes[i].lastError > Date.now() - 60 * 60 * 1000;
-                    if (!this.nodes[i].disabled || !hasError) {
-                        this.nodes[i].disabled = false;
-                        this.currentNode = this.nodes[i];
+            for (let i = 0; i < this.nodes.length; i++) {
+                const hasError = this.nodes[i].lastError > Date.now() - 60 * 60 * 1000;
+                if (!this.nodes[i].disabled || !hasError) {
+                    this.nodes[i].disabled = false;
+                    this.currentNode = this.nodes[i];
+
+                    try {
+                        const response = await fetch(this.currentNode.endpoint, opts);
+                        log(`${api}.${method} request to ${this.currentNode.endpoint}`, LogLevel.Debug);
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return { response: await response.json() };
+                    } catch (error: any) {
+                        error.isTxError = isTxError(error);
+                        if (error.isTxError) throw error;
+
+                        // Record that this client had an error
+                        this.updateNodeErrors();
+                        log(
+                            `Error making RPC call to node [${this.currentNode.endpoint}], Method Name: [${api}.${method}], Params: [${JSON.stringify(params)}], Error: ${error}`,
+                            2,
+                            'Yellow',
+                        );
                     }
                 }
-                if (fetchTimeout) {
-                    opts.timeout = fetchTimeout(tries);
-                }
-                const response = await fetch(this.currentNode.endpoint, opts);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return { response: await response.json() };
-            } catch (error: any) {
-                if (this.timeout !== 0 && Date.now() - start > this.timeout) {
-                    error.isTxError = isTxError(error);
-                    if (error.isTxError) throw error;
-
-                    // Record that this client had an error
-                    this.updateNodeErrors();
-                    log(
-                        `Error making RPC call to node [${this.currentNode.endpoint}], Method Name: [${method}], Params: [${JSON.stringify(params)}], Error: ${error}`,
-                        2,
-                        'Yellow',
-                    );
-                }
-                await sleep(this.backoff(tries++));
+            }
+            // Waiting 5 seconds because we're already through all given nodes
+            await timeout(5 * 1000);
+            // Enable all again
+            for (let i = 0; i < this.nodes.length; i++) {
+                this.nodes[i].disabled = false;
             }
         } while (true);
     }
@@ -585,9 +577,3 @@ export class Client {
         }
     }
 }
-
-/**
- * Default backoff function.
- * ```min(tries*10^2, 10 seconds)```
- */
-const defaultBackoff = (tries: number): number => Math.min(Math.pow(tries * 10, 2), 10 * 1000);
