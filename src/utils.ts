@@ -290,3 +290,27 @@ export const tryParse = (json) => {
 export const isTxError = (err) => {
     return err && err.name == 'RPCError' && err.jse_info && err.jse_info.code != 4030200 && ([10, 13].includes(err.jse_info.code) || err.jse_info.code > 1000000);
 };
+
+// https://github.com/sindresorhus/prepend-http/blob/main/index.js
+export const prependHttp = (url: string, { https = true, blank = false } = {}) => {
+    if (typeof url !== 'string') {
+        throw new TypeError(`Expected \`url\` to be of type \`string\`, got \`${typeof url}\``);
+    }
+
+    url = url.trim();
+
+    if (/^\.*\/|^(?!localhost)\w+?:/.test(url)) {
+        return url;
+    }
+
+    const replacedUrl = url.replace(/^(?!(?:\w+?:)?\/\/)/, https ? 'https://' : 'http://');
+    return blank ? url.replace('https://', '') : replacedUrl;
+};
+
+export const uniqueArray = <T>(a: any[], key?: string): T[] => {
+    if (key) {
+        return [...new Set(a.map((r) => r[key]))].map((r) => a.filter((r2) => r2[key] === r)[0]);
+    }
+
+    return [...new Set(a.map((o) => JSON.stringify(o)))].map((s) => JSON.parse(s as any));
+};

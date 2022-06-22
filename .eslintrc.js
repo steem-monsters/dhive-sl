@@ -8,15 +8,13 @@ module.exports = {
     },
     ignorePatterns: ['.eslintrc.js', 'node_modules/'],
     rules: {
-        // Off because it's a dumb rule.
+        // Off - No IInterface instead of Interface
         '@typescript-eslint/interface-name-prefix': 'off',
-        // Need this off since we use it until I have a better idea what the types should be.
+        // Off
         '@typescript-eslint/no-explicit-any': 'off',
         // Need this off since we place @ts-ignore in places.
         '@typescript-eslint/ban-ts-comment': 'off',
-        // Need this off since we force using ! everywhere.
-        '@typescript-eslint/no-non-null-assertion': 'off',
-        // Prettier too dumb to understand that auto-crlf exists in git
+        // auto-crlf exists in git
         'prettier/prettier': [
             'error',
             {

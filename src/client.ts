@@ -9,9 +9,10 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log, isTxError, sleep } from './utils';
+import { copy, LogLevel, log, isTxError, sleep, prependHttp, uniqueArray } from './utils';
 import { PrivateKey } from './crypto';
 import { HiveEngineAPI, HiveEngineParameters } from './modules/hiveengine';
+import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';
 
 /**
  * Library version.
@@ -77,10 +78,11 @@ interface RPCResponse {
 //     reject: (error: Error) => void;
 // }
 
-interface RpcNode {
-    address: string;
+interface RpcNode extends Partial<BeaconNode> {
+    name: string;
+    endpoint: string;
     disabled: boolean;
-    lastErrorDate: number;
+    lastError: number;
     errors: number;
 }
 
@@ -95,6 +97,7 @@ interface TxInQueue {
  * ------------------
  */
 export interface ClientOptions {
+    nodes?: string | string[];
     /**
      * Hive chain id. Defaults to main hive network:
      * need the new id?
@@ -102,11 +105,13 @@ export interface ClientOptions {
      *
      */
     chainId?: string;
+
     /**
      * Hive address prefix. Defaults to main network:
      * `STM`
      */
     addressPrefix?: string;
+
     /**
      * Send timeout, how long to wait in milliseconds before giving
      * up on a rpc call. Note that this is not an exact timeout,
@@ -127,10 +132,25 @@ export interface ClientOptions {
      */
     loggingLevel?: LogLevel;
 
-    streamOptions?: SLBlockchainStreamParameters;
+    /**
+     * Options for block streaming methods (Splinterlands)
+     */
+    stream?: SLBlockchainStreamParameters;
 
-    hiveEngineOptions?: HiveEngineParameters;
+    /**
+     * Options to interact with Hive Engine
+     */
+    hiveengine?: HiveEngineParameters;
 
+    /**
+     * Options to interact with the Beacon service to test & choose RPC nodes
+     */
+    beacon?: BeaconParameters;
+
+    /**
+     * Whether transaction queue for customJsons should be skipped (Splinterlands)
+     * Default: false
+     */
     skipTransactionQueue?: boolean;
 
     /**
@@ -151,10 +171,46 @@ export interface ClientOptions {
  * Can be used in both node.js and the browser. Also see {@link ClientOptions}.
  */
 export class Client {
+    static DEFAULT_NODES: string[] = ['api.hive.blog', 'api.deathwing.me', 'anyx.io', 'hive.roelandp.nl', 'api.pharesim.me'];
+    static DEFAULT_ADDITIONAL_NODES: string[] = ['hived.splinterlands.com', 'hived-2.splinterlands.com'];
     /**
-     *
+     * Interal nodes variable
      */
-    public nodes: RpcNode[];
+    private _nodes: RpcNode[];
+
+    /**
+     * Getter for combined _nodes and beaconNodes
+     */
+    public get nodes() {
+        const bnodes: RpcNode[] = [];
+        for (let i = 0; i < this.beaconNodes.length; i++) {
+            const bnode = this.beaconNodes[i];
+            const nodeExists = this._nodes.filter((node) => node.endpoint === bnode.endpoint)[0];
+            if (!nodeExists) bnodes.push(bnode);
+        }
+        const combinedNodes = this._nodes.concat(bnodes);
+        if (!this.currentNode) this.currentNode = combinedNodes[0];
+        return combinedNodes;
+    }
+
+    /**
+     * Setter for combined _nodes and beaconNodes
+     */
+    public set nodes(nodes: RpcNode[]) {
+        const _nodes: RpcNode[] = [];
+        const bnodes: RpcNode[] = [];
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            // is beacon node
+            if (node.score) {
+                bnodes.push(node);
+            } else {
+                _nodes.push(node);
+            }
+        }
+        this.beaconNodes = bnodes;
+        this._nodes = _nodes;
+    }
 
     /**
      * Client options, *read-only*.
@@ -208,6 +264,11 @@ export class Client {
     public readonly transaction: TransactionStatusAPI;
 
     /**
+     * Beacon API helper.
+     */
+    public readonly beacon: BeaconAPI;
+
+    /**
      * Chain ID for current network.
      */
     public readonly chainId: Buffer;
@@ -217,23 +278,60 @@ export class Client {
      */
     public readonly addressPrefix: string;
 
+    /**
+     * Timeout for RPC fetch
+     */
     private timeout: number;
+
+    /**
+     * Backoff for RPC retry
+     */
     private backoff: typeof defaultBackoff;
+
+    /**
+     *  How often RPC nodes can throw errors before they're disabled
+     */
     private rpcErrorLimit: number;
-    public currentNode: RpcNode;
+
+    /**
+     * Current node of nodes
+     */
+    private currentNode: RpcNode;
+
+    /**
+     * Transaction queue for customJsons
+     */
     private transactionQueue: TxInQueue[];
 
     /**
-     * @param address The address(es) to the Hive RPC server,
-     * e.g. `https://api.hive.blog`. or [`https://api.hive.blog`, `https://another.api.com`]
+     * Interval for transactionQueue
+     */
+    private transactionQueueInterval: any;
+
+    /**
+     * Beacon nodes via loadNodes()
+     */
+    private beaconNodes: RpcNode[];
+
+    /**
+     * Interval for loadNodes()
+     */
+    private beaconInterval: any;
+
+    /**
      * @param options Client options.
      */
-    constructor(address: string | string[], options: ClientOptions = {}) {
-        this.nodes = (!Array.isArray(address) ? [address] : address).map((address) => {
-            return { address, disabled: false, errors: 0, lastErrorDate: 0 };
-        });
-        this.currentNode = this.nodes[0];
+    constructor(options: ClientOptions = {}) {
         this.options = options;
+
+        this._nodes = [];
+        if (this.options.nodes) {
+            const nodes = !Array.isArray(this.options.nodes) ? [this.options.nodes] : this.options.nodes;
+            this._nodes = nodes.map((node) => {
+                return { name: prependHttp(node, { blank: true }), endpoint: prependHttp(node), disabled: false, errors: 0, lastError: 0 };
+            });
+            this.currentNode = this._nodes[0];
+        }
 
         this.chainId = options.chainId ? Buffer.from(options.chainId, 'hex') : DEFAULT_CHAIN_ID;
         assert.equal(this.chainId.length, 32, 'invalid chain id');
@@ -246,17 +344,65 @@ export class Client {
 
         this.database = new DatabaseAPI(this);
         this.broadcast = new BroadcastAPI(this);
-        this.blockchain = new Blockchain(this, options.streamOptions);
+        this.blockchain = new Blockchain(this, options.stream);
         this.rc = new RCAPI(this);
         this.hivemind = new HivemindAPI(this);
         this.keys = new AccountByKeyAPI(this);
         this.transaction = new TransactionStatusAPI(this);
-        this.hiveengine = new HiveEngineAPI(options.hiveEngineOptions);
+        this.hiveengine = new HiveEngineAPI(options.hiveengine);
+        this.beacon = new BeaconAPI(options.beacon);
+        this.beaconNodes = [];
 
         if (!options.skipTransactionQueue)
-            setInterval(() => {
+            this.transactionQueueInterval = setInterval(() => {
                 this.processTransactionQueue();
             }, 1000);
+
+        if (this.beacon.loadOnInitialize) {
+            setTimeout(() => {
+                this.loadNodes();
+            }, 1);
+        }
+    }
+
+    public destroy() {
+        clearInterval(this.transactionQueueInterval);
+        clearInterval(this.beaconInterval);
+    }
+
+    public async loadNodes() {
+        const fn = async (isInterval: boolean) => {
+            const beaconNodes = await this.beacon.loadNodes(isInterval);
+
+            if (beaconNodes.length > 0) {
+                // Disable nodes that are beaconNodes but not in current request
+                for (let i = 0; i < this.beaconNodes.length; i++) {
+                    const bnode = this.beaconNodes[i];
+                    const includedNode = beaconNodes.filter((node) => node.name === bnode.name)[0];
+                    if (!includedNode) this.beaconNodes[i].disabled = true;
+                }
+
+                for (let i = 0; i < beaconNodes.length; i++) {
+                    const bnode = beaconNodes[i];
+                    const existingNode = this.beaconNodes.filter((node) => node.name === bnode.name)[0];
+                    if (!existingNode) {
+                        this.beaconNodes.push({ ...bnode, disabled: false, errors: 0, lastError: 0 });
+                    } else {
+                        const i2 = this.beaconNodes.indexOf(existingNode);
+                        this.beaconNodes[i2].disabled = false;
+                        this.beaconNodes[i2].success = bnode.success;
+                        this.beaconNodes[i2].score = bnode.score;
+                        this.beaconNodes[i2].fail = bnode.fail;
+                    }
+                }
+            }
+        };
+        await fn(false);
+        if (this.beacon.mode === 'interval' && !this.beaconInterval) {
+            this.beaconInterval = setInterval(() => {
+                fn(true);
+            }, this.beacon.intervalTime * 1000);
+        }
     }
 
     /**
@@ -271,7 +417,8 @@ export class Client {
 
         opts.addressPrefix = 'TST';
         opts.chainId = '18dcf0a285365fc58b71f18b3d3fec954aa0c141c44e4e5cb4cf777b9eab274e';
-        return new Client('https://testnet.openhive.network', opts);
+        opts.nodes = ['https://testnet.openhive.network'];
+        return new Client(opts);
     }
 
     /**
@@ -373,7 +520,7 @@ export class Client {
         do {
             try {
                 for (let i = 0; i < this.nodes.length; i++) {
-                    const hasError = this.nodes[i].lastErrorDate > Date.now() - 60 * 60 * 1000;
+                    const hasError = this.nodes[i].lastError > Date.now() - 60 * 60 * 1000;
                     if (!this.nodes[i].disabled || !hasError) {
                         this.nodes[i].disabled = false;
                         this.currentNode = this.nodes[i];
@@ -382,7 +529,7 @@ export class Client {
                 if (fetchTimeout) {
                     opts.timeout = fetchTimeout(tries);
                 }
-                const response = await fetch(this.currentNode.address, opts);
+                const response = await fetch(this.currentNode.endpoint, opts);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -394,7 +541,11 @@ export class Client {
 
                     // Record that this client had an error
                     this.updateNodeErrors();
-                    log(`Error making RPC call to node [${this.currentNode.address}], Method Name: [${method}], Params: [${JSON.stringify(params)}], Error: ${error}`, 2, 'Yellow');
+                    log(
+                        `Error making RPC call to node [${this.currentNode.endpoint}], Method Name: [${method}], Params: [${JSON.stringify(params)}], Error: ${error}`,
+                        2,
+                        'Yellow',
+                    );
                 }
                 await sleep(this.backoff(tries++));
             }
@@ -403,13 +554,13 @@ export class Client {
 
     private updateNodeErrors() {
         // Check if the client has had errors within the last 10 minutes
-        if (this.currentNode.lastErrorDate && this.currentNode.lastErrorDate > Date.now() - 10 * 60 * 1000) this.currentNode.errors++;
+        if (this.currentNode.lastError && this.currentNode.lastError > Date.now() - 10 * 60 * 1000) this.currentNode.errors++;
         else this.currentNode.errors = 1;
 
-        this.currentNode.lastErrorDate = Date.now();
+        this.currentNode.lastError = Date.now();
 
         if (this.currentNode.errors >= this.rpcErrorLimit) {
-            log('Disabling node: ' + this.currentNode.address + ' due to too many errors!', 1, 'Red');
+            log('Disabling node: ' + this.currentNode.endpoint + ' due to too many errors!', 1, 'Red');
             this.currentNode.disabled = true;
         }
 
