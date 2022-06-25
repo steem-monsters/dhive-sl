@@ -8,7 +8,7 @@ import { log, tryParse } from '../utils';
 import SSC from 'sscjs';
 
 export interface HiveEngineOptions {
-    rpcUrl: string;
+    url: string;
     chainId: string;
     saveState: (lastBlock: number) => any;
     loadState: () => any;
@@ -26,7 +26,7 @@ export class HiveEngineAPI {
 
     constructor(parameters: HiveEngineParameters = {}) {
         this.options = {
-            rpcUrl: 'https://api.hive-engine.com/rpc',
+            url: 'https://api.hive-engine.com/rpc',
             chainId: 'ssc-mainnet-hive',
             saveState: (lastBlock: number) => this.saveState(lastBlock),
             loadState: () => this.loadState(),
@@ -34,7 +34,7 @@ export class HiveEngineAPI {
             onOp: null,
             ...parameters,
         };
-        this.ssc = new SSC(this.options.rpcUrl);
+        this.ssc = new SSC(this.options.url);
     }
 
     async stream(onOp) {

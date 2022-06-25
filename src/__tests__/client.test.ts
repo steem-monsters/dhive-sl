@@ -10,7 +10,7 @@ describe('client', function () {
 
     // TODO: change api.hive.blog to testnet
     it('should handle failover', async () => {
-        const bclient = new Client(['https://wrongapi.hive.blog', 'https://api.hive.blog'], { timeout: 1000, rpcErrorLimit: 1 });
+        const bclient = new Client(['https://wrongapi.hive.blog', 'https://api.hive.blog'], { timeout: 1000, nodeErrorLimit: 1 });
         const result = await bclient.call('condenser_api', 'get_accounts', [['initminer']]);
         expect(result.length).toEqual(1);
         expect(result[0].name).toEqual('initminer');

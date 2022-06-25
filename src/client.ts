@@ -124,7 +124,7 @@ export interface ClientOptions {
      * How often RPC nodes can throw errors before they're disabled
      * Default: 10
      */
-    rpcErrorLimit?: number;
+    nodeErrorLimit?: number;
 
     /**
      * Logging level
@@ -281,7 +281,7 @@ export class Client {
     /**
      *  How often RPC nodes can throw errors before they're disabled
      */
-    private rpcErrorLimit: number;
+    private nodeErrorLimit: number;
 
     /**
      * Current node of nodes
@@ -328,7 +328,7 @@ export class Client {
         this.addressPrefix = options.addressPrefix || DEFAULT_ADDRESS_PREFIX;
 
         this.timeout = options.timeout || 1000;
-        this.rpcErrorLimit = options.rpcErrorLimit || 10;
+        this.nodeErrorLimit = options.nodeErrorLimit || 10;
         this.transactionQueue = [];
 
         this.database = new DatabaseAPI(this);
@@ -551,7 +551,7 @@ export class Client {
 
         this.currentNode.lastError = Date.now();
 
-        if (this.currentNode.errors >= this.rpcErrorLimit) {
+        if (this.currentNode.errors >= this.nodeErrorLimit) {
             log('Disabling node: ' + this.currentNode.endpoint + ' due to too many errors!', 1, 'Red');
             this.currentNode.disabled = true;
         }
