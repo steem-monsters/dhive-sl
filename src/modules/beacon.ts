@@ -76,7 +76,7 @@ export class BeaconAPI {
         this.intervalTime = options.intervalTime || 300;
         this.minimumScore = options.minimumScore || 80;
         this.mode = options.mode || 'interval';
-        this.loadOnInitialize = options.loadOnInitialize || false;
+        this.loadOnInitialize = options.loadOnInitialize || true;
     }
 
     /**

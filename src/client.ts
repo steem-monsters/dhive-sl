@@ -309,6 +309,11 @@ export class Client {
     private beaconInterval: any;
 
     /**
+     * Toggle - true if nodes are set
+     */
+    private isInitialized: boolean;
+
+    /**
      * @param options Client options.
      */
     constructor(options: ClientOptions = {}) {
@@ -321,6 +326,7 @@ export class Client {
                 return { name: prependHttp(node, { blank: true }), endpoint: prependHttp(node), disabled: false, errors: 0, lastError: 0 };
             });
             this.currentNode = this._nodes[0];
+            this.isInitialized = true;
         }
 
         this.chainId = options.chainId ? Buffer.from(options.chainId, 'hex') : DEFAULT_CHAIN_ID;
@@ -348,8 +354,9 @@ export class Client {
             }, 1000);
 
         if (this.beacon.loadOnInitialize) {
-            setTimeout(() => {
-                this.loadNodes();
+            setTimeout(async () => {
+                await this.loadNodes();
+                if (this.nodes.filter((node) => !node.disabled).length > 0) this.isInitialized = true;
             }, 500);
         }
     }
@@ -364,24 +371,29 @@ export class Client {
             const beaconNodes = await this.beacon.loadNodes(isInterval);
 
             if (beaconNodes.length > 0) {
-                // Disable nodes that are beaconNodes but not in current request
+                // Disable nodes that are beaconNodes but not found in current request
                 for (let i = 0; i < this.beaconNodes.length; i++) {
-                    const bnode = this.beaconNodes[i];
-                    const includedNode = beaconNodes.filter((node) => node.name === bnode.name)[0];
+                    const includedNode = beaconNodes.filter((node) => node.name === this.beaconNodes[i].name)[0];
                     if (!includedNode) this.beaconNodes[i].disabled = true;
                 }
 
                 for (let i = 0; i < beaconNodes.length; i++) {
-                    const bnode = beaconNodes[i];
-                    const existingNode = this.beaconNodes.filter((node) => node.name === bnode.name)[0];
+                    const newBNode = beaconNodes[i];
+                    const existingNode = this.beaconNodes.filter((node) => node.name === newBNode.name)[0];
+                    // Beacon node does not exist yet, add to array
                     if (!existingNode) {
-                        this.beaconNodes.push({ ...bnode, disabled: false, errors: 0, lastError: 0 });
+                        this.beaconNodes.push({ ...newBNode, disabled: false, errors: 0, lastError: 0 });
                     } else {
+                        // Beacon node already exists.
                         const i2 = this.beaconNodes.indexOf(existingNode);
-                        this.beaconNodes[i2].disabled = false;
-                        this.beaconNodes[i2].success = bnode.success;
-                        this.beaconNodes[i2].score = bnode.score;
-                        this.beaconNodes[i2].fail = bnode.fail;
+                        this.beaconNodes[i2].disabled = false; // Force enable again
+                        this.beaconNodes[i2].endpoint = newBNode.endpoint; // Refresh endpoint
+                        this.beaconNodes[i2].errors = 0; // Reset errors
+                        this.beaconNodes[i2].lastError = 0; // Reset last errors
+                        this.beaconNodes[i2].success = newBNode.success; // Update success
+                        this.beaconNodes[i2].score = newBNode.score; // Update score
+                        this.beaconNodes[i2].fail = newBNode.fail; // Update fail
+                        this.beaconNodes[i2].updated_at = newBNode.updated_at; // Update updated_at
                     }
                 }
             }
@@ -419,10 +431,16 @@ export class Client {
      *
      */
     public async call(api: string, method: string, params: any = []): Promise<any> {
-        assert(
-            this.nodes.length > 0 || this.beacon.loadOnInitialize,
-            'options.nodes is empty and options.beacon.loadOnInitialize is false. Either set those or run client.loadNodes()',
-        );
+        if (!this.isInitialized && this.beacon.loadOnInitialize) {
+            // loadNodes has not finished calling
+            for (let i = 0; i < 100; i++) {
+                // Waiting 5 seconds in 50ms steps
+                await timeout(50);
+                if (this.isInitialized) break;
+            }
+        }
+
+        assert(this.nodes.length > 0, 'options.nodes is empty. Either set nodes manually or run client.loadNodes()');
 
         const request: RPCCall = {
             id: 0,
