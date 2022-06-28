@@ -9,7 +9,7 @@ describe('rc_api', function () {
 
     const client = Client.testnet({ agent });
     let serverConfig: { [key: string]: boolean | string | number };
-    const liveClient = new Client(TEST_NODE, { agent });
+    const liveClient = new Client({ nodes: [TEST_NODE], agent });
 
     let acc: { username: string; posting: string; active: string };
     /*before(async function () {

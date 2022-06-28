@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { ByteBuffer } from 'bytebuffer';
 import { randomBytes, createHash } from 'crypto';
-import { DEFAULT_CHAIN_ID, PrivateKey, PublicKey, Signature, cryptoUtils, Transaction, Types } from '..';
+import { DEFAULT_CHAIN_ID, PrivateKey, PublicKey, Signature, Transaction, Types } from '..';
 
 describe('crypto', function () {
     const testnetPrefix = 'STX';
@@ -83,13 +83,13 @@ describe('crypto', function () {
     });
 
     it('should sign and verify transaction', async function () {
-        const tx: Transaction = {
+        const tx = new Transaction({
             ref_block_num: 1234,
             ref_block_prefix: 1122334455,
             expiration: '2017-07-15T16:51:19',
             extensions: ['long-pants'],
             operations: [['vote', { voter: 'foo', author: 'bar', permlink: 'baz', weight: 10000 }]],
-        };
+        });
         const key = PrivateKey.fromSeed('hello');
         const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
         Types.Transaction(buffer, tx);
@@ -98,7 +98,7 @@ describe('crypto', function () {
         const digest = createHash('sha256')
             .update(Buffer.concat([DEFAULT_CHAIN_ID, data]))
             .digest();
-        const signed = cryptoUtils.signTransaction(tx, key);
+        const signed = tx.sign(key);
         const pkey = key.createPublic();
         const sig = Signature.fromString(signed.signatures[0]);
         assert(pkey.verify(digest, sig));
@@ -106,15 +106,16 @@ describe('crypto', function () {
     });
 
     it('should handle serialization errors', function () {
-        const tx: any = {
+        const tx = new Transaction({
             ref_block_num: 1234,
             ref_block_prefix: 1122334455,
             expiration: new Date().toISOString().slice(0, -5),
             extensions: [],
-            operations: [['shutdown_network', {}]],
-        };
+            operations: [['shutdown_network' as any, {}]],
+        });
+
         try {
-            cryptoUtils.signTransaction(tx, testKey);
+            tx.sign(testKey);
             assert(false, 'should not be reached');
         } catch (error: any) {
             assert.equal(error.name, 'SerializationError');

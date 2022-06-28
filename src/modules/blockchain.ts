@@ -4,7 +4,7 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import { Client } from './../client';
+import { Client } from '../client';
 import { iteratorStream, log, sleep, timeout } from '../utils';
 import fs from 'fs';
 import { SignedBlock } from '../chain/block';

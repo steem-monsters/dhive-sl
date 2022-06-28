@@ -3,7 +3,7 @@
  * @author Bartłomiej (@engrave) Górnicki
  */
 
-import { Client } from './../client';
+import { Client } from '../client';
 
 export type TransactionStatus = 'unknown' | 'within_mempool' | 'within_reversible_block' | 'within_irreversible_block' | 'expired_reversible' | 'expired_irreversible' | 'too_old';
 

@@ -20,15 +20,21 @@
     "author": "reichert-splinterlands",
     "license": "BSD-3-Clause-No-Military-License",
     "dependencies": {
+        "@hiveio/hive-js": "^2.0.4",
+        "bigi": "^1.4.2",
+        "browserify-aes": "^1.2.0",
         "bs58": "^5.0.0",
         "bytebuffer": "^5.0.1",
         "cross-fetch": "^3.1.5",
+        "ecurve": "^1.0.6",
         "jsbi": "^4.3.0",
         "secp256k1": "^4.0.3",
+        "secure-random": "^1.1.2",
         "sscjs": "0.0.8",
         "verror": "^1.10.1"
     },
     "devDependencies": {
+        "@types/ecurve": "^1.0.0",
         "@types/jest": "^28.1.2",
         "@types/node": "^18.0.0",
         "@typescript-eslint/eslint-plugin": "^5.28.0",

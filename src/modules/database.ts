@@ -13,7 +13,7 @@ import { ChainProperties, VestingDelegation } from '../chain/misc';
 import { AppliedOperation } from '../chain/operation';
 import { SignedTransaction } from '../chain/transaction';
 import { log, LogLevel } from '../utils';
-import { Client } from './../client';
+import { Client } from '../client';
 
 export interface TxSignProperties {
     ref_block_num: DynamicGlobalProperties['last_irreversible_block_num'];

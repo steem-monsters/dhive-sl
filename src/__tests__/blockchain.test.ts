@@ -5,7 +5,7 @@ describe('blockchain', function () {
     // this.slow(5 * 1000);
     jest.setTimeout(60 * 1000);
 
-    const client = new Client(TEST_NODE, { agent });
+    const client = new Client({ nodes: [TEST_NODE], agent });
 
     const expectedIds = ['0000000109833ce528d5bbfb3f6225b39ee10086', '00000002ed04e3c3def0238f693931ee7eebbdf1'];
     const expectedOps = [

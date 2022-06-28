@@ -9,7 +9,7 @@ describe('database api', function () {
 
     const client = Client.testnet({ agent });
     let serverConfig: { [key: string]: boolean | string | number };
-    const liveClient = new Client(TEST_NODE, { agent });
+    const liveClient = new Client({ nodes: [TEST_NODE], agent });
 
     let acc: { username: string; password: string };
     beforeAll(async function () {
@@ -141,7 +141,7 @@ describe('database api', function () {
 
     it('verifyAuthority', async function () {
         // this.slow(5 * 1000);
-        const tx: Transaction = {
+        const tx = new Transaction({
             ref_block_num: 0,
             ref_block_prefix: 0,
             expiration: '2000-01-01T00:00:00',
@@ -157,7 +157,7 @@ describe('database api', function () {
                 ],
             ],
             extensions: [],
-        };
+        });
         const key = PrivateKey.fromLogin(acc.username, acc.password, 'posting');
 
         const stx = client.broadcast.sign(tx, key);

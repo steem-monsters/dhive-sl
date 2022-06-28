@@ -1,14 +1,14 @@
 import assert from 'assert';
 
 import { Client, Asset, Transaction, PrivateKey } from '..';
-import { getTestnetAccounts, randomString, agent, TEST_NODE } from './common.test';
+import { getTestnetAccounts, randomString, agent, TEST_NODE } from './common';
 
 describe('HivemindAPI', function () {
     // this.slow(500);
     // this.timeout(20 * 1000);
 
     const client = Client.testnet({ agent });
-    const liveClient = new Client(TEST_NODE, { agent });
+    const liveClient = new Client({ nodes: [TEST_NODE], agent });
 
     let acc: { username: string; password: string };
 

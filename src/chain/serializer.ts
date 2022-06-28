@@ -5,8 +5,8 @@
  */
 
 import * as ByteBuffer from 'bytebuffer';
-import { PublicKey } from '../crypto';
 import { Asset } from './asset';
+import { PublicKey } from './keys';
 import { HexBuffer } from './misc';
 import { Operation } from './operation';
 

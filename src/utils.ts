@@ -55,7 +55,7 @@ import * as ByteBuffer from 'bytebuffer';
 import { Asset, PriceType } from './chain/asset';
 import { WitnessSetPropertiesOperation } from './chain/operation';
 import { Serializer, Types } from './chain/serializer';
-import { PublicKey } from './crypto';
+import { PublicKey } from './chain/keys';
 export interface WitnessProps {
     account_creation_fee?: string | Asset;
     account_subsidy_budget?: number; // uint32_t

@@ -21,8 +21,9 @@ import {
 } from '../chain/operation';
 import { SignedTransaction, Transaction, TransactionConfirmation } from '../chain/transaction';
 import { log } from '../utils';
-import { Client } from './../client';
-import { cryptoUtils, PrivateKey, PublicKey } from './../crypto';
+import { Client } from '../client';
+import { PrivateKey, PublicKey } from '../chain/keys';
+import { KeyRole } from '../chain/keys/utils';
 
 export interface CreateAccountOptions {
     /**
@@ -250,6 +251,35 @@ export class BroadcastAPI {
     }
 
     /**
+     * Adds/removes a [active/posting/memo/owner] key to/from a given hive account
+     */
+    public async updateAccountKeys(name: string, type: KeyRole, method: 'add' | 'remove', publicKey: string, broadcastKey: string) {
+        const account = await this.client.database.getAccount(name, { logErrors: false });
+        if (!account) return { status: 'error', message: 'Account does not exists' };
+
+        const authority = account[type];
+        if (type !== 'memo') {
+            if (method === 'remove') {
+                authority.key_auths = authority.key_auths.filter((k: [string, number]) => k[0] !== publicKey);
+                if (authority.key_auths.length < 1) return { status: 'error', message: `Can't reduce keys to less than 1` };
+            } else {
+                authority.key_auths.push([publicKey, 1]);
+                authority.key_auths = authority.key_auths.sort((a: [string, number], b: [string, number]) => a[0].localeCompare(b[0]));
+            }
+        }
+
+        const op: AccountUpdateOperation = [
+            'account_update',
+            { account: name, json_metadata: JSON.stringify(account.json_metadata), memo_key: account.memo_key, active: account.active, posting: account.posting },
+        ];
+
+        op[type] = type !== 'memo' ? authority : publicKey;
+
+        const result = await this.sendOperations([op], broadcastKey);
+        return result?.id ? { status: 'success', data: result } : { status: 'error', message: 'broadcast api error', data: result };
+    }
+
+    /**
      * Delegate vesting shares from one account to the other. The vesting shares are still owned
      * by the original account, but content voting rights and bandwidth allocation are transferred
      * to the receiving account. This sets the delegation to `vesting_shares`, increasing it or
@@ -279,13 +309,13 @@ export class BroadcastAPI {
         const expiration = new Date(new Date(props.time + 'Z').getTime() + this.expireTime).toISOString().slice(0, -5);
         const extensions = [];
 
-        const tx: Transaction = {
+        const tx = new Transaction({
             expiration,
             extensions,
             operations,
             ref_block_num,
             ref_block_prefix,
-        };
+        });
 
         const result = await this.send(this.sign(tx, key));
         // assert(result.expired === false, 'transaction expired')
@@ -297,7 +327,7 @@ export class BroadcastAPI {
      * Sign a transaction with key(s).
      */
     public sign(transaction: Transaction, key: string | string[] | PrivateKey | PrivateKey[]): SignedTransaction {
-        return cryptoUtils.signTransaction(transaction, key, this.client.chainId);
+        return transaction.sign(key, this.client.chainId);
     }
 
     /**
@@ -324,7 +354,7 @@ export class BroadcastAPI {
      * Broadcast a signed transaction to the network.
      */
     public async send(transaction: SignedTransaction): Promise<TransactionConfirmation> {
-        const trxId = cryptoUtils.generateTrxId(transaction);
+        const trxId = transaction.generateTrxId();
         const result = await this.call('broadcast_transaction', [transaction]);
         return Object.assign({ id: trxId }, result);
     }

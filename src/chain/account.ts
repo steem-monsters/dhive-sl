@@ -4,8 +4,8 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import { PublicKey } from '../crypto';
 import { Asset } from './asset';
+import { PublicKey } from './keys';
 
 export interface AuthorityType {
     weight_threshold: number; // uint32_t
