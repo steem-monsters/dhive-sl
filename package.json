@@ -20,7 +20,6 @@
     "author": "reichert-splinterlands",
     "license": "BSD-3-Clause-No-Military-License",
     "dependencies": {
-        "@hiveio/hive-js": "^2.0.4",
         "bigi": "^1.4.2",
         "browserify-aes": "^1.2.0",
         "bs58": "^5.0.0",
