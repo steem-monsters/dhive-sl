@@ -53,7 +53,7 @@ export class Transaction {
     public recoverKeyFromSignature(signature: string, chainId?: Buffer) {
         try {
             const sig = Signature.fromString(signature);
-            return new Signature(sig.data, sig.recovery).recover(this.digest(chainId));
+            return new Signature(sig.data, sig.recid).recover(this.digest(chainId));
         } catch (e: any) {
             return null;
         }

@@ -9,6 +9,7 @@ import { Authority, AuthorityType } from '../chain/account';
 import { Asset } from '../chain/asset';
 import {
     AccountUpdateOperation,
+    ChangeRecoveryAccountOperation,
     ClaimAccountOperation,
     CommentOperation,
     CommentOptionsOperation,
@@ -277,6 +278,14 @@ export class BroadcastAPI {
 
         const result = await this.sendOperations([op], broadcastKey);
         return result?.id ? { status: 'success', data: result } : { status: 'error', message: 'broadcast api error', data: result };
+    }
+
+    /**
+     * Start account recovery request. Requires private owner key of account to recover.
+     */
+    public changeRecoveryAccount(data: ChangeRecoveryAccountOperation[1], ownerKey: string | PrivateKey) {
+        const op: Operation = ['change_recovery_account', data];
+        return this.sendOperations([op], ownerKey);
     }
 
     /**

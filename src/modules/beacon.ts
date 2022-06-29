@@ -41,6 +41,7 @@ export interface BeaconParameters {
      * Default: https://beacon.peakd.com/api
      */
     url?: string;
+
     /**
      * Whether nodes should update with interval or only manually by calling loadNodes()
      */
@@ -75,8 +76,8 @@ export class BeaconAPI {
 
         this.intervalTime = options.intervalTime || 300;
         this.minimumScore = options.minimumScore || 80;
-        this.mode = options.mode || 'interval';
-        this.loadOnInitialize = options.loadOnInitialize || true;
+        this.mode = options.mode || 'manual';
+        this.loadOnInitialize = options.loadOnInitialize || false;
     }
 
     /**

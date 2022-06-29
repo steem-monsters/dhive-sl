@@ -1,19 +1,40 @@
 import { hash } from '../../crypto';
+import { randomBytes } from 'crypto';
 import assert from 'assert';
-import * as secp256k1 from 'secp256k1';
+import secp256k1 from 'secp256k1';
 import { KeyRole, keyUtils, NETWORK_ID } from './utils';
-import { DEFAULT_ADDRESS_PREFIX } from '../../client';
+import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from '../../client';
 import { PublicKeyHiveJs } from '../serializer-hivejs/publickey';
 import { PrivateKeyHiveJS } from '../serializer-hivejs/privatekey';
 
-export const generateKeys = (account: string, password: string, roles: KeyRole[], addressPrefix = DEFAULT_ADDRESS_PREFIX) => {
-    const pubKeys = {};
+export interface GeneratedHiveKeys {
+    owner: string;
+    active: string;
+    posting: string;
+    memo: string;
+    ownerPubkey: string;
+    activePubkey: string;
+    postingPubkey: string;
+    memoPubkey: string;
+}
+
+export const generateKeys = (
+    account: string,
+    password: string,
+    roles: KeyRole[] = ['posting', 'active', 'memo', 'owner'],
+    addressPrefix = DEFAULT_ADDRESS_PREFIX,
+): GeneratedHiveKeys => {
+    const pubKeys: any = {};
     for (const role of roles) {
         const pk = PrivateKey.fromLogin(account, password, role);
         pubKeys[role] = pk.toString();
         pubKeys[`${role}Pubkey`] = pk.createPublic(addressPrefix).toString();
     }
     return pubKeys;
+};
+
+export const generatePassword = () => {
+    return `P${PrivateKey.fromSeed(randomBytes(48).toString('hex')).toString()}`;
 };
 
 /**
@@ -53,7 +74,13 @@ export class PublicKey {
      * @param signature Signature to verify.
      */
     public verify(message: Buffer, signature: Signature): boolean {
-        return secp256k1.verify(message, signature.data, this.key);
+        return secp256k1.ecdsaVerify(signature.data, message, this.key);
+    }
+
+    public verifyMessage(message: string, signature: string) {
+        const sig = Signature.fromString(signature);
+        const buffer = Buffer.from(hash.sha256(message));
+        return this.verify(buffer, sig);
     }
 
     /**
@@ -130,25 +157,34 @@ export class PrivateKey {
      * @param message 32-byte message.
      */
     public sign(message: Buffer): Signature {
-        let rv: { signature: Buffer; recovery: number };
+        let rv: { signature: Buffer; recid: number };
         let attempts = 0;
         do {
             const options = {
                 data: hash.sha256(Buffer.concat([message, Buffer.alloc(1, ++attempts)])),
             };
-            rv = secp256k1.sign(message, this.key, options);
+            const { signature, recid } = secp256k1.ecdsaSign(message, this.key, options);
+            rv = { signature: Buffer.from(signature), recid };
         } while (!keyUtils.isCanonicalSignature(rv.signature));
-        return new Signature(rv.signature, rv.recovery);
+        return new Signature(rv.signature, rv.recid);
+    }
+
+    /**
+     * Wrapper around sign
+     * @param message 32-byte message.
+     */
+    public signMessage(message: string): string {
+        return this.sign(Buffer.from(hash.sha256(message))).toString();
     }
 
     /**
      * Derive the public key for this private key.
      */
     public createPublic(prefix?: string): PublicKey {
-        return new PublicKey(secp256k1.publicKeyCreate(this.key), prefix);
+        return new PublicKey(Buffer.from(secp256k1.publicKeyCreate(this.key)), prefix);
     }
 
-    public isValidPublicPair(publicKey: string | PublicKey, prefix?: string) {
+    public isPublicKey(publicKey: string | PublicKey, prefix?: string) {
         return (publicKey instanceof PublicKey ? publicKey.toString() : publicKey) === this.createPublic(prefix).toString();
     }
 
@@ -173,14 +209,14 @@ export class PrivateKey {
  * ECDSA (secp256k1) signature.
  */
 export class Signature {
-    constructor(public data: Buffer, public recovery: number) {
+    constructor(public data: Buffer, public recid: number) {
         assert.equal(data.length, 64, 'invalid signature');
     }
 
     public static fromBuffer(buffer: Buffer) {
         assert.equal(buffer.length, 65, 'invalid signature');
         const recovery = buffer.readUInt8(0) - 31;
-        const data = buffer.slice(1);
+        const data = buffer.subarray(1);
         return new Signature(data, recovery);
     }
 
@@ -193,12 +229,12 @@ export class Signature {
      * @param message 32-byte message that was used to create the signature.
      */
     public recover(message: Buffer, prefix?: string) {
-        return new PublicKey(secp256k1.recover(message, this.data, this.recovery), prefix);
+        return new PublicKey(Buffer.from(secp256k1.ecdsaRecover(this.data, this.recid, message)), prefix);
     }
 
     public toBuffer() {
         const buffer = Buffer.alloc(65);
-        buffer.writeUInt8(this.recovery + 31, 0);
+        buffer.writeUInt8(this.recid + 31, 0);
         this.data.copy(buffer, 1);
         return buffer;
     }

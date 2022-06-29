@@ -14,6 +14,8 @@ import { AppliedOperation } from '../chain/operation';
 import { SignedTransaction } from '../chain/transaction';
 import { log, LogLevel } from '../utils';
 import { Client } from '../client';
+import { KeyRole } from '../chain/keys/utils';
+import { PublicKey } from '../chain/keys';
 
 export interface TxSignProperties {
     ref_block_num: DynamicGlobalProperties['last_irreversible_block_num'];
@@ -203,10 +205,28 @@ export class DatabaseAPI {
     /**
      * Returns account or null
      */
-    public getAccount = async (name: string, opts: GetAccountOption = {}) => {
+    public async getAccount(name: string, opts: GetAccountOption = {}) {
         const accounts = await this.getAccounts([name], opts);
         return accounts && accounts.length > 0 ? accounts[0] : null;
-    };
+    }
+
+    /**
+     * Returns the public keys of a specified role from a given account name
+     */
+    public async getAccountPublicKeys(account: string | Account, role: KeyRole): Promise<{ key: string; weight: number }[]> {
+        const finalAccount = typeof account === 'string' ? await this.getAccount(account) : account;
+        if (!finalAccount) return [];
+
+        if (role === 'memo') return [{ key: finalAccount.memo_key, weight: 1 }];
+        if (!finalAccount[role].key_auths || finalAccount[role].key_auths.length === 0 || !finalAccount[role].key_auths[0] || !finalAccount[role].key_auths[0][0]) {
+            return [];
+        }
+
+        return finalAccount[role].key_auths.map((keyArray) => {
+            const key = keyArray[0];
+            return { key: key instanceof PublicKey ? key.toString() : key, weight: keyArray[1] };
+        });
+    }
 
     /**
      * Returns the details of a transaction based on a transaction id.
