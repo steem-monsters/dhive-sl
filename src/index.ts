@@ -6,7 +6,7 @@ export * from './modules/database';
 export * from './modules/rc';
 export * from './modules/key';
 export * from './modules/hivemind';
-export * from './modules/hiveengine';
+export * from './modules/engine';
 export * from './modules/transaction';
 export * from './modules/broadcast';
 

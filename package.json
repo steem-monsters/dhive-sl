@@ -1,8 +1,11 @@
 {
     "name": "splinterlands-dhive-sl",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "An interface to the Hive blockchain which supports multi-node redundancy for high availability systems. Fork of dhive.",
     "main": "dist/index.js",
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "prepublishOnly": "npm run lint:fix && npm run build",
         "build": "rimraf dist && rimraf tsconfig.tsbuildinfo && tsc",
@@ -29,7 +32,7 @@
         "jsbi": "^4.3.0",
         "secp256k1": "^4.0.3",
         "secure-random": "^1.1.2",
-        "sscjs": "0.0.8",
+        "splinterlands-hive-engine": "^1.0.0",
         "verror": "^1.10.1"
     },
     "devDependencies": {
