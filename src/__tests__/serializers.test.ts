@@ -1,7 +1,7 @@
 import assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 
-import { Types, Serializer, HexBuffer } from '../';
+import { Types, Serializer, HexBuffer } from '..';
 
 /*
  Serializer tests in the format:

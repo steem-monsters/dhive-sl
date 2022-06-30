@@ -55,7 +55,7 @@ import * as ByteBuffer from 'bytebuffer';
 import { Asset, PriceType } from './chain/asset';
 import { WitnessSetPropertiesOperation } from './chain/operation';
 import { Serializer, Types } from './chain/serializer';
-import { PublicKey } from './crypto';
+import { PublicKey } from './chain/keys';
 export interface WitnessProps {
     account_creation_fee?: string | Asset;
     account_subsidy_budget?: number; // uint32_t
@@ -313,4 +313,45 @@ export const uniqueArray = <T>(a: any[], key?: string): T[] => {
     }
 
     return [...new Set(a.map((o) => JSON.stringify(o)))].map((s) => JSON.parse(s as any));
+};
+
+export const validateAccountName = (value: string) => {
+    const fn = () => {
+        let suffix = 'Account name should ';
+        if (!value) {
+            return suffix + 'not be empty.';
+        }
+        const length = value.length;
+        if (length < 3) {
+            return suffix + 'be longer.';
+        }
+        if (length > 16) {
+            return suffix + 'be shorter.';
+        }
+        if (/\./.test(value)) {
+            suffix = 'Each account segment should ';
+        }
+        const ref = value.split('.');
+        for (let i = 0, len = ref.length; i < len; i++) {
+            const label = ref[i];
+            if (!/^[a-z]/.test(label)) {
+                return suffix + 'start with a letter.';
+            }
+            if (!/^[a-z0-9-]*$/.test(label)) {
+                return suffix + 'have only letters, digits, or dashes.';
+            }
+            if (/--/.test(label)) {
+                return suffix + 'have only one dash in a row.';
+            }
+            if (!/[a-z0-9]$/.test(label)) {
+                return suffix + 'end with a letter or digit.';
+            }
+            if (!(label.length >= 3)) {
+                return suffix + 'be longer';
+            }
+        }
+        return null;
+    };
+    const reason = fn();
+    return reason ? { status: 'error', message: reason } : { status: 'success' };
 };

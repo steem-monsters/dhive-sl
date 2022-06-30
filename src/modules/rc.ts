@@ -7,7 +7,7 @@
 import { Account } from '../chain/account';
 import { getVests } from '../chain/misc';
 import { Manabar, RCAccount, RCParams, RCPool } from '../chain/rc';
-import { Client } from './../client';
+import { Client } from '../client';
 
 export class RCAPI {
     constructor(readonly client: Client) {}

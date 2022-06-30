@@ -10,9 +10,10 @@ import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
 import { copy, LogLevel, log, isTxError, prependHttp, timeout } from './utils';
-import { PrivateKey } from './crypto';
 import { HiveEngineAPI, HiveEngineParameters } from './modules/hiveengine';
 import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';
+import { PrivateKey } from './chain/keys';
+import { Memo } from './chain/memo';
 
 /**
  * Library version.
@@ -153,6 +154,12 @@ export interface ClientOptions {
     skipTransactionQueue?: boolean;
 
     /**
+     * Memo prefix
+     * Default: #
+     */
+    memoPrefix?: string;
+
+    /**
      * Node.js http(s) agent, use if you want http keep-alive.
      * Defaults to using https.globalAgent.
      * @see https://nodejs.org/api/http.html#http_new_agent_options.
@@ -264,6 +271,11 @@ export class Client {
     public readonly beacon: BeaconAPI;
 
     /**
+     * Memo helper
+     */
+    public readonly memo: Memo;
+
+    /**
      * Chain ID for current network.
      */
     public readonly chainId: Buffer;
@@ -346,6 +358,7 @@ export class Client {
         this.transaction = new TransactionStatusAPI(this);
         this.hiveengine = new HiveEngineAPI(options.hiveengine);
         this.beacon = new BeaconAPI(options.beacon);
+        this.memo = new Memo(options.memoPrefix, this.addressPrefix);
         this.beaconNodes = [];
 
         if (!options.skipTransactionQueue)

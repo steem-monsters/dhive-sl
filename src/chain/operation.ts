@@ -4,11 +4,11 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import { PublicKey } from '../crypto';
 import { AuthorityType } from './account';
 import { Asset, PriceType } from './asset';
 import { SignedBlockHeader } from './block';
 import { BeneficiaryRoute } from './comment';
+import { PublicKey } from './keys';
 import { ChainProperties, HexBuffer } from './misc';
 
 /**

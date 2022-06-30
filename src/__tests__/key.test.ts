@@ -1,7 +1,7 @@
 import assert from 'assert';
 
 import { Client } from '..';
-import { agent } from './common.test';
+import { agent } from './common';
 
 describe('account_by_key_api', function () {
     // this.slow(500);

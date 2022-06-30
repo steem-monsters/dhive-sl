@@ -11,13 +11,14 @@ describe('client', function () {
 
     // TODO: change api.hive.blog to testnet
     it('should handle failover', async () => {
-        const bclient = new Client({ timeout: 1000, nodeErrorLimit: 1 });
+        const bclient = new Client({ nodes: ['wrong.api.hive.com'], timeout: 1000, nodeErrorLimit: 1 });
+        await bclient.loadNodes();
 
         const result = await bclient.call('condenser_api', 'get_accounts', [['initminer']]);
         expect(result.length).toEqual(1);
         expect(result[0].name).toEqual('initminer');
+        expect(bclient.nodes.length).toBeGreaterThan(2);
         await timeout(2000);
-        console.log(bclient.nodes);
     });
 
     it('should make rpc call', async function () {
