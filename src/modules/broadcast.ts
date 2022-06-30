@@ -68,7 +68,7 @@ export interface CreateAccountOptions {
 
 export interface CustomJsonOptions {
     id: string;
-    json: any;
+    json: Record<string, any>;
     account: string;
     activeAuth?: boolean;
 }

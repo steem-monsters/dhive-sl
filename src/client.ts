@@ -10,7 +10,7 @@ import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
 import { copy, LogLevel, log, isTxError, prependHttp, timeout } from './utils';
-import { HiveEngineAPI, HiveEngineParameters } from './modules/hiveengine';
+import { EngineApi, EngineParameters } from './modules/engine';
 import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';
 import { PrivateKey } from './chain/keys';
 import { Memo } from './chain/memo';
@@ -140,7 +140,7 @@ export interface ClientOptions {
     /**
      * Options to interact with Hive Engine
      */
-    hiveengine?: HiveEngineParameters;
+    engine?: EngineParameters;
 
     /**
      * Options to interact with the Beacon service to test & choose RPC nodes
@@ -253,7 +253,7 @@ export class Client {
     /**
      * HiveEngine helper.
      */
-    public readonly hiveengine: HiveEngineAPI;
+    public readonly engine: EngineApi;
 
     /**
      * Accounts by key API helper.
@@ -356,7 +356,7 @@ export class Client {
         this.hivemind = new HivemindAPI(this);
         this.keys = new AccountByKeyAPI(this);
         this.transaction = new TransactionStatusAPI(this);
-        this.hiveengine = new HiveEngineAPI(options.hiveengine);
+        this.engine = new EngineApi(this, options.engine);
         this.beacon = new BeaconAPI(options.beacon);
         this.memo = new Memo(options.memoPrefix, this.addressPrefix);
         this.beaconNodes = [];

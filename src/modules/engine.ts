@@ -5,9 +5,18 @@
 
 import fs from 'fs';
 import { log, tryParse } from '../utils';
-import SSC from 'sscjs';
+import {
+    Block as EngineBlock,
+    Client as EngineClient,
+    Operation as EngineOperation,
+    OperationJson as EngineOperationJson,
+    TokensTransferOperation,
+    Transaction as EngineTransaction,
+} from 'splinterlands-hive-engine';
+import { Client } from '../client';
+import { PrivateKey } from '../chain/keys';
 
-export interface HiveEngineOptions {
+export interface EngineOptions {
     url: string;
     chainId: string;
     saveState: (lastBlock: number) => any;
@@ -16,15 +25,14 @@ export interface HiveEngineOptions {
     onOp: any;
 }
 
-export type HiveEngineParameters = Partial<HiveEngineOptions>;
+export type EngineParameters = Partial<EngineOptions>;
 
-export class HiveEngineAPI {
-    // TODO: sscjs no typings
-    private ssc: any = null;
-    private lastBlock = 0;
-    private options: HiveEngineOptions;
+export class EngineApi {
+    public client: EngineClient;
+    private lastBlock: number;
+    private options: EngineOptions;
 
-    constructor(parameters: HiveEngineParameters = {}) {
+    constructor(private hiveClient: Client, parameters: EngineParameters = {}) {
         this.options = {
             url: 'https://api.hive-engine.com/rpc',
             chainId: 'ssc-mainnet-hive',
@@ -34,22 +42,33 @@ export class HiveEngineAPI {
             onOp: null,
             ...parameters,
         };
-        this.ssc = new SSC(this.options.url);
+        this.lastBlock = 0;
+        this.client = new EngineClient(this.options.url);
     }
 
-    async stream(onOp) {
+    public async broadcast(op: EngineOperation, account: string, privateKey: string | PrivateKey, activeAuth?: boolean) {
+        const json: EngineOperationJson = { contractName: op[0], contractAction: op[1], contractPayload: op[2] };
+        return this.hiveClient.broadcast.customJsonQueue({ id: this.options.chainId, account, activeAuth, json }, privateKey);
+    }
+
+    public async transfer(data: TokensTransferOperation[2], from: string, privateKey: string | PrivateKey) {
+        const op: TokensTransferOperation = ['tokens', 'transfer', data];
+        return this.broadcast(op as EngineOperation, from, privateKey);
+    }
+
+    public async stream(onOp) {
         this.options.onOp = onOp;
-        let lastBlock = 0;
+        let lastBlock = this.lastBlock;
 
         // Load saved state (last block read)
         if (this.options.loadState) lastBlock = await this.options.loadState();
 
         // Start streaming blocks
-        if (lastBlock > 0) this.ssc.streamFromTo(lastBlock + 1, null, (err, block) => this.processBlock(err, block));
-        else this.ssc.stream((err, block) => this.processBlock(err, block));
+        if (lastBlock > 0) this.client.blockchain.streamFromTo(lastBlock + 1, (err, block) => this.processBlock(err, block));
+        else this.client.blockchain.stream((err, block) => this.processBlock(err, block));
     }
 
-    async processBlock(err, block) {
+    private async processBlock(err, block: EngineBlock) {
         if (err) log('Error processing block: ' + err);
 
         if (!block) return;
@@ -62,9 +81,9 @@ export class HiveEngineAPI {
                     block.transactions[i],
                     block.blockNumber,
                     new Date(block.timestamp + 'Z'),
-                    block.refSteemBlockNumber,
-                    block.refSteemBlockId,
-                    block.prevRefSteemBlockId,
+                    block.refHiveBlockNumber,
+                    block.refHiveBlockId,
+                    block.prevRefHiveBlockId,
                 );
         } catch (e: any) {
             log('Error processing block: ' + block.blockNumber + ', Error: ' + e.message);
@@ -76,22 +95,22 @@ export class HiveEngineAPI {
         }
     }
 
-    async processTransaction(tx, ssc_block_num, ssc_block_time, block_num, block_id, prev_block_id) {
-        const logs = tryParse(tx.logs);
+    private async processTransaction(transaction: EngineTransaction, engineBlockNum: number, engineBlockTime: Date, blockNum: number, blockId: string, prevBlockId: string) {
+        const logs = tryParse(transaction.logs);
 
         // The transaction was unsuccessful
         if (!logs || logs.errors || !logs.events || logs.events.length == 0) return;
 
         if (this.options.onOp) {
             try {
-                await this.options.onOp(tx, ssc_block_num, ssc_block_time, block_num, block_id, prev_block_id, tryParse(tx.payload), logs.events);
+                await this.options.onOp(transaction, engineBlockNum, engineBlockTime, blockNum, blockId, prevBlockId, tryParse(transaction.payload), logs.events);
             } catch (err) {
-                log(`Error processing Hive Engine transaction [${tx.transactionId}]: ${err}`, 1, 'Red');
+                log(`Error processing Hive Engine transaction [${transaction.transactionId}]: ${err}`, 1, 'Red');
             }
         }
     }
 
-    async loadState() {
+    private async loadState() {
         // Check if state has been saved to disk, in which case load it
         if (fs.existsSync(this.options.stateFile)) {
             const state = JSON.parse(fs.readFileSync(String(this.options.stateFile)).toString());
@@ -100,14 +119,10 @@ export class HiveEngineAPI {
         }
     }
 
-    saveState(lastBlock) {
+    private saveState(lastBlock) {
         // Save the last block read to disk
         fs.writeFile(String(this.options.stateFile), JSON.stringify({ lastBlock }), function (e: any) {
             if (e) log(e);
         });
-    }
-
-    getLastBlock() {
-        return this.lastBlock;
     }
 }
