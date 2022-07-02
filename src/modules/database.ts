@@ -15,7 +15,7 @@ import { SignedTransaction } from '../chain/transaction';
 import { log, LogLevel } from '../utils';
 import { Client } from '../client';
 import { KeyRole } from '../chain/keys/utils';
-import { PublicKey } from '../chain/keys';
+import { PublicKey } from '../chain/keys/keys';
 
 export interface TxSignProperties {
     ref_block_num: DynamicGlobalProperties['last_irreversible_block_num'];

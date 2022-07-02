@@ -23,7 +23,7 @@ import {
 import { SignedTransaction, Transaction, TransactionConfirmation } from '../chain/transaction';
 import { log } from '../utils';
 import { Client } from '../client';
-import { PrivateKey, PublicKey } from '../chain/keys';
+import { PrivateKey, PublicKey } from '../chain/keys/keys';
 import { KeyRole } from '../chain/keys/utils';
 
 export interface CreateAccountOptions {

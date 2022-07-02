@@ -4,9 +4,9 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import * as ByteBuffer from 'bytebuffer';
+import ByteBuffer from 'bytebuffer';
 import { Asset } from './asset';
-import { PublicKey } from './keys';
+import { PublicKey } from './keys/keys';
 import { HexBuffer } from './misc';
 import { Operation } from './operation';
 

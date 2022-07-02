@@ -1,7 +1,7 @@
 import assert from 'assert';
 
 import { Client, Asset, Transaction, PrivateKey } from '..';
-import { generatePassword } from '../chain/keys';
+import { generatePassword } from '../chain/keys/keys';
 import { getTestnetAccounts, randomString, agent, TEST_NODE } from './common';
 
 describe('database api', function () {

@@ -11,7 +11,7 @@ import { Types, Serializer, HexBuffer } from '..';
 const serializerTests = require('./serializer-tests.json');
 
 function serialize(serializer: Serializer, data: any) {
-    const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+    const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
     serializer(buffer, data);
     buffer.flip();
     return Buffer.from(buffer.toBuffer()).toString('hex');

@@ -3,8 +3,8 @@ import assert from 'assert';
 import base58 from 'bs58';
 import { encrypt, decrypt } from './serializer-hivejs/aes';
 import { EncryptedMemoSerializer } from './serializer-hivejs/serializer';
-import { PrivateKey, PublicKey } from './keys';
-import { DEFAULT_ADDRESS_PREFIX } from '../client';
+import { PrivateKey, PublicKey } from './keys/keys';
+import { DEFAULT_ADDRESS_PREFIX } from '../constants';
 
 export class Memo {
     private memoPrefix: string;

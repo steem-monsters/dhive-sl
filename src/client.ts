@@ -1,7 +1,6 @@
 import assert from 'assert';
 import { VError } from 'verror';
 import fetch from 'cross-fetch';
-import packageVersion from './version';
 import { Blockchain, SLBlockchainStreamParameters } from './modules/blockchain';
 import { BroadcastAPI } from './modules/broadcast';
 import { DatabaseAPI } from './modules/database';
@@ -12,23 +11,9 @@ import { TransactionStatusAPI } from './modules/transaction';
 import { copy, LogLevel, log, isTxError, prependHttp, timeout } from './utils';
 import { EngineApi, EngineParameters } from './modules/engine';
 import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';
-import { PrivateKey } from './chain/keys';
+import { PrivateKey } from './chain/keys/keys';
 import { Memo } from './chain/memo';
-
-/**
- * Library version.
- */
-export const VERSION = packageVersion;
-
-/**
- * Main Hive network chain id.
- */
-export const DEFAULT_CHAIN_ID = Buffer.from('beeab0de00000000000000000000000000000000000000000000000000000000', 'hex');
-
-/**
- * Main Hive network address prefix.
- */
-export const DEFAULT_ADDRESS_PREFIX = 'STM';
+import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
 
 interface RPCRequest {
     /**
@@ -483,7 +468,7 @@ export class Client {
         // This check is needed because the user agent cannot be set in a browser
         if (typeof self === undefined) {
             opts.headers = {
-                'User-Agent': `dhive/${packageVersion}`,
+                'User-Agent': `dhive-sl`,
             };
         }
 

@@ -3,7 +3,7 @@
  * @author Bartłomiej (@engrave) Górnicki
  */
 
-import { PublicKey } from '../chain/keys';
+import { PublicKey } from '../chain/keys/keys';
 import { Client } from '../client';
 
 export interface AccountsByKey {
