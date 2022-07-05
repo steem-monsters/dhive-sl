@@ -84,8 +84,12 @@ export class BeaconAPI {
      * Convenience for calling `account_by_key_api`.
      */
     private async call(method: string, params?: any) {
-        const result = await fetch(`${this.url}/${method}${params || ''}`);
-        return result.ok ? result.json() : null;
+        try {
+            const result = await fetch(`${this.url}/${method}${params || ''}`);
+            return result.ok ? result.json() : null;
+        } catch (error) {
+            return null;
+        }
     }
 
     /**
