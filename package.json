@@ -3,8 +3,12 @@
     "version": "1.0.2",
     "description": "An interface to the Hive blockchain which supports multi-node redundancy for high availability systems. Fork of dhive.",
     "main": "dist/dhive-sl.js",
-    "module": "dist/dhive-sl.mjs",
+    "module": "dist/dhive-sl.esm.js",
     "typings": "dist/dhive-sl.d.ts",
+    "browser": {
+        "./dist/dhive-sl.js": "./dist/dhive-sl.js",
+        "./dist/dhive-sl.esm.js": "./dist/dhive-sl.esm.js"
+    },
     "scripts": {
         "prepublishOnly": "npm run lint:fix && npm run build",
         "build": "npm run build:clear && rollup -c",
@@ -33,9 +37,11 @@
         "secp256k1": "^4.0.3",
         "secure-random": "^1.1.2",
         "splinterlands-hive-engine": "^1.0.0",
-        "verror": "^1.10.1"
+        "verror": "^1.10.1",
+        "whatwg-fetch": "^3.6.2"
     },
     "devDependencies": {
+        "@rollup/plugin-node-resolve": "^13.3.0",
         "@types/ecurve": "^1.0.0",
         "@types/jest": "^28.1.2",
         "@types/node": "^18.0.0",
