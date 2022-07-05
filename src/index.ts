@@ -24,3 +24,4 @@ export * from './chain/memo';
 
 export * from './client';
 export * from './crypto';
+export * from './constants';
