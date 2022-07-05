@@ -51,11 +51,11 @@ export function copy<T>(object: T): T {
 
 // Hack to be able to generate a valid witness_set_properties op
 // Can hopefully be removed when hived's JSON representation is fixed
-import * as ByteBuffer from 'bytebuffer';
+import ByteBuffer from 'bytebuffer';
 import { Asset, PriceType } from './chain/asset';
 import { WitnessSetPropertiesOperation } from './chain/operation';
 import { Serializer, Types } from './chain/serializer';
-import { PublicKey } from './chain/keys';
+import { PublicKey } from './chain/keys/keys';
 export interface WitnessProps {
     account_creation_fee?: string | Asset;
     account_subsidy_budget?: number; // uint32_t
@@ -115,7 +115,7 @@ export function buildWitnessUpdateOp(owner: string, props: WitnessProps): Witnes
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const JSBI = require('jsbi');
+import JSBI from 'jsbi';
 export const operationOrders = {
     vote: 0,
     // tslint:disable-next-line: object-literal-sort-keys

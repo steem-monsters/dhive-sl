@@ -3,9 +3,9 @@ import { randomBytes } from 'crypto';
 import assert from 'assert';
 import secp256k1 from 'secp256k1';
 import { KeyRole, keyUtils, NETWORK_ID } from './utils';
-import { DEFAULT_ADDRESS_PREFIX } from '../../client';
 import { PublicKeyHiveJs } from '../serializer-hivejs/publickey';
 import { PrivateKeyHiveJS } from '../serializer-hivejs/privatekey';
+import { DEFAULT_ADDRESS_PREFIX } from '../../constants';
 
 export interface GeneratedHiveKeys {
     owner: string;

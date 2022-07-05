@@ -5,7 +5,7 @@
  */
 
 import { Asset } from './asset';
-import { PublicKey } from './keys';
+import { PublicKey } from './keys/keys';
 
 export interface AuthorityType {
     weight_threshold: number; // uint32_t

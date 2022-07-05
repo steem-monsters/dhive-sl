@@ -8,7 +8,7 @@ import { AuthorityType } from './account';
 import { Asset, PriceType } from './asset';
 import { SignedBlockHeader } from './block';
 import { BeneficiaryRoute } from './comment';
-import { PublicKey } from './keys';
+import { PublicKey } from './keys/keys';
 import { ChainProperties, HexBuffer } from './misc';
 
 /**

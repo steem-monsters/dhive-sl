@@ -1,7 +1,7 @@
 // Originally from hive-js - https://gitlab.syncad.com/hive/hive-js
 
 import ByteBuffer from 'bytebuffer';
-import { DEFAULT_ADDRESS_PREFIX } from '../../client';
+import { DEFAULT_ADDRESS_PREFIX } from '../../constants';
 import { Types } from './types';
 
 const HEX_DUMP = process.env.npm_config__graphene_serializer_hex_dump;

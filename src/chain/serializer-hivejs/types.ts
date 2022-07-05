@@ -5,8 +5,8 @@ import { ObjectId } from './objectid';
 import { FastParser } from './fastparser.hivejs';
 import validations from './validations';
 import { ChainTypes } from './chaintypes';
-import { DEFAULT_ADDRESS_PREFIX } from '../../client';
 import { PublicKeyHiveJs } from './publickey';
+import { DEFAULT_ADDRESS_PREFIX } from '../../constants';
 
 // /**
 //     Convert 12.34 with a precision of 3 into 12340

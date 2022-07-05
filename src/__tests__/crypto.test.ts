@@ -1,7 +1,8 @@
 import assert from 'assert';
 import ByteBuffer from 'bytebuffer';
 import { randomBytes, createHash, sign } from 'crypto';
-import { DEFAULT_CHAIN_ID, PrivateKey, PublicKey, Signature, Transaction, Types } from '..';
+import { PrivateKey, PublicKey, Signature, Transaction, Types } from '..';
+import { DEFAULT_CHAIN_ID } from '../constants';
 
 describe('crypto', function () {
     const testnetPrefix = 'STX';
@@ -91,7 +92,7 @@ describe('crypto', function () {
             operations: [['vote', { voter: 'foo', author: 'bar', permlink: 'baz', weight: 10000 }]],
         });
         const key = PrivateKey.fromSeed('hello');
-        const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+        const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
         Types.Transaction(buffer, tx);
         buffer.flip();
         const data = Buffer.from(buffer.toBuffer());

@@ -8,10 +8,9 @@ import { Operation } from './operation';
 import ByteBuffer from 'bytebuffer';
 import { VError } from 'verror';
 import { Types } from './serializer';
-import { DEFAULT_CHAIN_ID } from '../client';
-import {} from 'path';
-import { PrivateKey, Signature } from './keys';
+import { PrivateKey, Signature } from './keys/keys';
 import { hash } from '../crypto';
+import { DEFAULT_CHAIN_ID } from '../constants';
 
 interface TransactionParameters {
     ref_block_num: number;

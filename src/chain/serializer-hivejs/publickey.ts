@@ -6,7 +6,7 @@ import base58 from 'bs58';
 import BigInteger from 'bigi';
 import assert from 'assert';
 import { hash } from '../../crypto';
-import { DEFAULT_ADDRESS_PREFIX } from '../../client';
+import { DEFAULT_ADDRESS_PREFIX } from '../../constants';
 // var config = require('../../../config');
 
 const G = secp256k1.G;

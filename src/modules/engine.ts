@@ -14,7 +14,7 @@ import {
     Transaction as EngineTransaction,
 } from 'splinterlands-hive-engine';
 import { Client } from '../client';
-import { PrivateKey } from '../chain/keys';
+import { PrivateKey } from '../chain/keys/keys';
 
 export interface EngineOptions {
     url: string;

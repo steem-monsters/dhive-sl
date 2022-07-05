@@ -18,8 +18,10 @@ export * from './chain/misc';
 export * from './chain/operation';
 export * from './chain/serializer';
 export * from './chain/transaction';
-export * from './chain/keys';
+export * from './chain/keys/keys';
+export * from './chain/keys/utils';
 export * from './chain/memo';
 
 export * from './client';
 export * from './crypto';
+export * from './constants';
