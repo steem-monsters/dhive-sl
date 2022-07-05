@@ -7,7 +7,7 @@ const main = async () => {
      */
     const client0 = new Client();
     await client0.loadNodes();
-    log(`0 - No config client: ${(await client0.database.getAccount('splinterlands')).name}`);
+    log(`0 - No config client: ${(await client0.database.getAccount('splinterlands'))?.name}`);
     await timeout(3 * 1000);
 
     /**
@@ -15,7 +15,7 @@ const main = async () => {
      * Beacon service is NOT used
      */
     const clientA = new Client({ nodes: ['wrong.hive-api.com', 'hived.splinterlands.com', 'hived-2.splinterlands.com'] });
-    log(`A - Client: ${(await clientA.database.getAccount('splinterlands')).name}`);
+    log(`A - Client: ${(await clientA.database.getAccount('splinterlands'))?.name}`);
     await timeout(3 * 1000);
 
     /**
@@ -25,7 +25,7 @@ const main = async () => {
      */
     const clientB = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'], beacon: { loadOnInitialize: false, intervalTime: 2, mode: 'interval' } });
     await clientB.loadNodes();
-    log(`B - Client: ${(await clientB.database.getAccount('splinterlands')).name}`);
+    log(`B - Client: ${(await clientB.database.getAccount('splinterlands'))?.name}`);
     await timeout(5 * 1000);
     clientB.destroy(); // Clears intervals
 
@@ -36,7 +36,7 @@ const main = async () => {
      */
     const clientC = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'], beacon: { loadOnInitialize: false, mode: 'manual' } });
     await clientC.loadNodes();
-    log(`C - Client: ${(await clientC.database.getAccount('splinterlands')).name}`);
+    log(`C - Client: ${(await clientC.database.getAccount('splinterlands'))?.name}`);
     await timeout(5 * 1000);
 
     /**
@@ -45,7 +45,7 @@ const main = async () => {
      * Nodes are refreshed every 2 seconds after new Client()
      */
     const clientD = new Client({ nodes: ['hived.splinterlands.com', 'hived-2.splinterlands.com'], beacon: { loadOnInitialize: true, mode: 'interval', intervalTime: 2 } });
-    log(`D - Client: ${(await clientD.database.getAccount('splinterlands')).name}`);
+    log(`D - Client: ${(await clientD.database.getAccount('splinterlands'))?.name}`);
     await timeout(5 * 1000);
     clientD.destroy(); // Clears intervals
 
@@ -55,7 +55,7 @@ const main = async () => {
      * Nodes are refreshed every 2 seconds after new Client()
      */
     const clientE = new Client({ beacon: { loadOnInitialize: true, mode: 'interval', intervalTime: 2 } });
-    log(`E - Client: ${(await clientE.database.getAccount('splinterlands')).name}`);
+    log(`E - Client: ${(await clientE.database.getAccount('splinterlands'))?.name}`);
     await timeout(5 * 1000);
     clientE.destroy(); // Clears intervals
 
