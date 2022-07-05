@@ -11,7 +11,7 @@ Fork of [dhive](https://gitlab.syncad.com/hive/dhive), which was originally crea
 For node.js or the browser with [browserify](https://github.com/substack/node-browserify) or [webpack](https://github.com/webpack/webpack).
 
 ```
-npm install @splinterlands/dhive-sl
+npm install splinterlands-dhive-sl
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ npm install @splinterlands/dhive-sl
 // Based on src/examples/beacon.example.ts
 // npm run example:beacon
 
-import { Client, utils } from '@splinterlands/dhive-sl';
+import { Client, utils } from 'splinterlands-dhive-sl';
 
 const main = async () => {
      /**
