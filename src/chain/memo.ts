@@ -18,7 +18,7 @@ export class Memo {
         this.regexPattern = new RegExp(`^${this.memoPrefix}`, 'gi');
     }
 
-    public decode(memo: string, privateKey: string | PrivateKey) {
+    public decode(memo: string, privateKey: string | PrivateKey, memoPrefix = false) {
         assert(memo, 'memo is required');
         assert.equal(typeof memo, 'string', 'memo');
         if (!memo.match(this.regexPattern)) return memo;
@@ -37,12 +37,12 @@ export class Memo {
         const mbuf = ByteBuffer.fromBinary(decrypted.toString('binary'), ByteBuffer.DEFAULT_CAPACITY as any, ByteBuffer.LITTLE_ENDIAN);
         try {
             mbuf.mark();
-            return `${this.memoPrefix}${mbuf.readVString()}`;
+            return `${memoPrefix ? this.memoPrefix : ''}${mbuf.readVString()}`;
         } catch (e) {
             mbuf.reset();
             // Sender did not length-prefix the memo
             memo = Buffer.from(mbuf.toString('binary'), 'binary').toString('utf-8');
-            return `${this.memoPrefix}${memo}`;
+            return `${memoPrefix ? this.memoPrefix : ''}${memo}`;
         }
     }
 
@@ -94,12 +94,12 @@ export class Memo {
             try {
                 const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
                 const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';
-                const cyphertext = this.encode('#memo爱', publicKey, privateKey);
+                const cyphertext = this.encode('memo爱', publicKey, privateKey);
                 plaintext = this.decode(cyphertext, privateKey);
             } catch (e) {
                 console.error(e);
             } finally {
-                this.encodeTestResult = plaintext === '#memo爱';
+                this.encodeTestResult = plaintext === 'memo爱';
             }
         }
         if (!this.encodeTestResult) throw new Error('This environment does not support encryption.');
