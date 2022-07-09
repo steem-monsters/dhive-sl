@@ -158,8 +158,6 @@ export interface ClientOptions {
  * Can be used in both node.js and the browser. Also see {@link ClientOptions}.
  */
 export class Client {
-    static DEFAULT_NODES: string[] = ['api.hive.blog', 'api.deathwing.me', 'anyx.io', 'hive.roelandp.nl', 'api.pharesim.me'];
-    static DEFAULT_ADDITIONAL_NODES: string[] = ['hived.splinterlands.com', 'hived-2.splinterlands.com'];
     /**
      * Interal nodes variable
      */
@@ -429,16 +427,31 @@ export class Client {
      *
      */
     public async call(api: string, method: string, params: any = []): Promise<any> {
-        if (!this.isInitialized && this.beacon.loadOnInitialize) {
-            // loadNodes has not finished calling
-            for (let i = 0; i < 100; i++) {
-                // Waiting 5 seconds in 50ms steps
-                await timeout(50);
-                if (this.isInitialized) break;
+        /**
+         * Nodes aren't set yet
+         */
+        if (!this.isInitialized) {
+            /**
+             * Beacon nodes loading hasn't started yet and no nodes have been given as parameter
+             */
+            if (!this.beacon.loadOnInitialize && !this.options.nodes) {
+                /**
+                 * Load beacon nodes
+                 */
+                await this.loadNodes();
+            } else if (this.beacon.loadOnInitialize) {
+                /**
+                 * Beacon nodes loading is in progress
+                 */
+                for (let i = 0; i < 100; i++) {
+                    // Waiting 5 seconds in 50ms steps
+                    await timeout(50);
+                    if (this.isInitialized) break;
+                }
             }
         }
 
-        assert(this.nodes.length > 0, 'options.nodes is empty. Either set nodes manually or run client.loadNodes()');
+        assert(this.nodes.filter((node) => !node.disabled).length > 0, 'options.nodes is empty. Either set nodes manually or run client.loadNodes()');
 
         const request: RPCCall = {
             id: 0,
@@ -532,7 +545,7 @@ export class Client {
 
                     try {
                         const response = await fetch(this.currentNode.endpoint, opts);
-                        log(`${api}.${method} request to ${this.currentNode.endpoint}`, LogLevel.Debug);
+                        // log(`${api}.${method} request to ${this.currentNode.endpoint}`, LogLevel.Debug);
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }

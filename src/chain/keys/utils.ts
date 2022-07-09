@@ -27,7 +27,7 @@ const decodePublic = (encodedKey: string): { key: Buffer; prefix: string } => {
     const buffer: any = bs58.decode(encodedKey);
     const checksum = buffer.slice(-4);
     const key = buffer.slice(0, -4);
-    const checksumVerify = hash.ripemd160(key).slice(0, 4);
+    const checksumVerify = hash.ripemd160(key).subarray(0, 4);
     assert.deepEqual(checksumVerify, checksum, 'public key checksum mismatch');
     return { key, prefix };
 };
@@ -38,7 +38,7 @@ const decodePublic = (encodedKey: string): { key: Buffer; prefix: string } => {
 const encodePrivate = (key: Buffer): string => {
     assert.equal(key.readUInt8(0), 0x80, 'private key network id mismatch');
     const checksum = hash.doubleSha256(key);
-    return bs58.encode(Buffer.concat([key, checksum.slice(0, 4)]));
+    return bs58.encode(Buffer.concat([key, checksum.subarray(0, 4)]));
 };
 
 /**
@@ -49,7 +49,7 @@ const decodePrivate = (encodedKey: string): Buffer => {
     assert.deepEqual(buffer.slice(0, 1), NETWORK_ID, 'private key network id mismatch');
     const checksum = buffer.slice(-4);
     const key = buffer.slice(0, -4);
-    const checksumVerify = hash.doubleSha256(key).slice(0, 4);
+    const checksumVerify = hash.doubleSha256(key).subarray(0, 4);
     assert.deepEqual(checksumVerify, checksum, 'private key checksum mismatch');
     return key;
 };

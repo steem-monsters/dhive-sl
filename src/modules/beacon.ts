@@ -4,7 +4,7 @@
  */
 
 import fetch from 'cross-fetch';
-import { log, LogLevel, prependHttp } from '../utils';
+import { prependHttp } from '../utils';
 
 interface BeaconNodeBase {
     name: string;
@@ -126,11 +126,11 @@ export class BeaconAPI {
                     nodes = newNodes;
                 }
             }
-            if (nodes.length <= 0) {
-                log('Warning: no valid beacon nodes found', LogLevel.Debug);
-            } else {
-                log(`Got ${nodes.length} beacon nodes`, LogLevel.Debug);
-            }
+            // if (nodes.length <= 0) {
+            //     log('Warning: no valid beacon nodes found', LogLevel.Debug);
+            // } else {
+            //     log(`Got ${nodes.length} beacon nodes`, LogLevel.Debug);
+            // }
         }
 
         return nodes;
