@@ -1,22 +1,9 @@
 import assert from 'assert';
-
-import { Client } from '..';
-import { agent, TEST_NODE } from './common';
+import { TEST_CLIENT } from './common';
 
 describe('rc_api', function () {
     // this.slow(500);
     jest.setTimeout(20 * 1000);
-
-    const client = Client.testnet({ agent });
-    let serverConfig: { [key: string]: boolean | string | number };
-    const liveClient = new Client({ nodes: [TEST_NODE], agent });
-
-    let acc: { username: string; posting: string; active: string };
-    /*before(async function () {
-        [acc] = await getTestnetAccounts()
-    })*/
-
-    // _calculateManabar max_mana: number, { current_mana, last_update_time }
 
     it('calculateVPMana', function () {
         const account: any = {
@@ -33,10 +20,10 @@ describe('rc_api', function () {
             withdrawn: 0,
         };
 
-        let bar = client.rc.calculateVPMana(account);
+        let bar = TEST_CLIENT.rc.calculateVPMana(account);
         assert.equal(bar.percentage, 6181);
         account.voting_manabar.last_update_time = 1537064449;
-        bar = client.rc.calculateVPMana(account);
+        bar = TEST_CLIENT.rc.calculateVPMana(account);
         assert.equal(bar.percentage, 10000);
     });
 
@@ -55,10 +42,10 @@ describe('rc_api', function () {
             max_rc: '1000000',
         };
 
-        let bar = client.rc.calculateRCMana(rc_account);
+        let bar = TEST_CLIENT.rc.calculateRCMana(rc_account);
         assert.equal(bar.percentage, 10000);
         rc_account.rc_manabar.last_update_time = Date.now() / 1000;
-        bar = client.rc.calculateRCMana(rc_account);
+        bar = TEST_CLIENT.rc.calculateRCMana(rc_account);
         assert(bar.percentage >= 1000 && bar.percentage < 1100);
     });
 });

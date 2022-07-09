@@ -1,24 +1,14 @@
-import assert from 'assert';
-
-import { Client, Asset, Transaction, PrivateKey } from '..';
-import { generatePassword } from '../chain/keys/keys';
-import { getTestnetAccounts, randomString, agent, TEST_NODE } from './common';
+import { Asset } from '..';
+import { TEST_CLIENT } from './common';
 
 describe('database api', function () {
     // this.slow(500);
     jest.setTimeout(20 * 1000);
 
-    // const client = Client.testnet({ agent });
     let serverConfig: { [key: string]: boolean | string | number };
-    const client = new Client({ nodes: [TEST_NODE], agent });
-
-    let acc: { username: string; password: string };
-    // beforeAll(async function () {
-    //     [acc] = await getTestnetAccounts();
-    // });
 
     it('getDynamicGlobalProperties', async function () {
-        const result = await client.database.getDynamicGlobalProperties();
+        const result = await TEST_CLIENT.database.getDynamicGlobalProperties();
         expect(Object.keys(result)).toEqual([
             'head_block_number',
             'head_block_id',
@@ -69,42 +59,41 @@ describe('database api', function () {
     });
 
     it('getConfig', async function () {
-        const result = await client.database.getConfig();
+        const result = await TEST_CLIENT.database.getConfig();
         // HIVE_ config stuff here
         const r = (key: string) => result['HIVE_' + key];
         serverConfig = result;
         // also test some assumptions made throughout the code
-        const conf = await client.database.getConfig();
+        const conf = await TEST_CLIENT.database.getConfig();
         expect(r('CREATE_ACCOUNT_WITH_HIVE_MODIFIER')).toEqual(30);
         expect(r('CREATE_ACCOUNT_DELEGATION_RATIO')).toEqual(5);
         expect(r('100_PERCENT')).toEqual(10000);
         expect(r('1_PERCENT')).toEqual(100);
 
-        const version = await client.call('database_api', 'get_version', {});
+        const version = await TEST_CLIENT.call('database_api', 'get_version', {});
         // TODO: uncomment after HF24
-        // assert.equal(version["chain_id"], client.options.chainId);
+        // assert.equal(version["chain_id"], TEST_CLIENT.options.chainId);
     });
 
     it('getBlockHeader', async function () {
-        const result = await client.database.getBlockHeader(1);
+        const result = await TEST_CLIENT.database.getBlockHeader(1);
         expect(result.previous).toEqual('0000000000000000000000000000000000000000');
     });
 
     it('getBlock', async function () {
-        const result = await client.database.getBlock(1);
+        const result = await TEST_CLIENT.database.getBlock(1);
         expect(result.previous).toEqual('0000000000000000000000000000000000000000');
         expect(result.signing_key).toEqual(serverConfig['HIVE_INIT_PUBLIC_KEY_STR']);
     });
 
     it('getOperations', async function () {
-        const result = await client.database.getOperations(1);
-        console.log(result);
-        expect(result.length).toEqual(5);
-        expect(result[0].op[0]).toEqual('account_created');
+        const result = await TEST_CLIENT.database.getOperations(1);
+        expect(result.length).toEqual(1);
+        expect(result[0].op[0]).toEqual('producer_reward');
     });
 
     it('getDiscussions', async function () {
-        const r1 = await client.database.getDiscussions('comments', {
+        const r1 = await TEST_CLIENT.database.getDiscussions('comments', {
             start_author: 'almost-digital',
             start_permlink: 're-pal-re-almost-digital-dsteem-a-strongly-typed-steem-client-library-20170702t131034262z',
             limit: 1,
@@ -116,23 +105,23 @@ describe('database api', function () {
     });
 
     it('getTransaction', async function () {
-        const tx = await client.database.getTransaction('c20a84c8a12164e1e0750f0ee5d3c37214e2f073');
+        const tx = await TEST_CLIENT.database.getTransaction('c20a84c8a12164e1e0750f0ee5d3c37214e2f073');
         expect(tx.signatures).toEqual(['201e02e8daa827382b1a3aefb6809a4501eb77aa813b705be4983d50d74c66432529601e5ae43981dcba2a7e171de5fd75be2e1820942260375d2daf647df2ccaa']);
         try {
-            await client.database.getTransaction('c20a84c8a12164e1e0750f0ee5d3c37214e2f071');
+            await TEST_CLIENT.database.getTransaction('c20a84c8a12164e1e0750f0ee5d3c37214e2f071');
             expect(false).toBeTruthy();
         } catch (error: any) {
-            expect(error.message).toEqual('Assert Exception:false: Unknown Transaction c20a84c8a12164e1e0750f0ee5d3c37214e2f071');
+            expect(error.message.includes('Unknown Transaction c20a84c8a12164e1e0750f0ee5d3c37214e2f071')).toBeTruthy();
         }
     });
 
     it('getChainProperties', async function () {
-        const props = await client.database.getChainProperties();
+        const props = await TEST_CLIENT.database.getChainProperties();
         expect(Asset.from(props.account_creation_fee).symbol).toEqual('HIVE');
     });
 
     it('getCurrentMedianHistoryPrice', async function () {
-        const price = await client.database.getCurrentMedianHistoryPrice();
+        const price = await TEST_CLIENT.database.getCurrentMedianHistoryPrice();
         expect(Asset.from(price.base).symbol).toEqual('HBD');
         expect(price.quote.symbol).toEqual('HIVE');
     });
@@ -140,7 +129,7 @@ describe('database api', function () {
     // this tests for delegations from the hive account
     it('getVestingDelegations', async function () {
         // this.slow(5 * 1000);
-        const [delegation] = await client.database.getVestingDelegations('mahdiyari', '', 1);
+        const [delegation] = await TEST_CLIENT.database.getVestingDelegations('mahdiyari', '', 1);
         if (!delegation) {
             return;
         }
@@ -170,13 +159,13 @@ describe('database api', function () {
     //     });
     //     const key = PrivateKey.fromLogin('test', generatePassword(), 'posting');
 
-    //     const stx = client.broadcast.sign(tx, key);
-    //     const rv = await client.database.verifyAuthority(stx);
+    //     const stx = TEST_CLIENT.broadcast.sign(tx, key);
+    //     const rv = await TEST_CLIENT.database.verifyAuthority(stx);
     //     expect(rv).toBeTruthy();
     //     // const bogusKey = PrivateKey.fromSeed("ogus");
     //     // try {
-    //     //   await client.database.verifyAuthority(
-    //     //     client.broadcast.sign(tx, bogusKey)
+    //     //   await TEST_CLIENT.database.verifyAuthority(
+    //     //     TEST_CLIENT.broadcast.sign(tx, bogusKey)
     //     //   );
     //     //   assert(false, "should not be reached");
     //     // } catch (error) {

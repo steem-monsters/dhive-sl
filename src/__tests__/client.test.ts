@@ -1,13 +1,13 @@
 import { VError } from 'verror';
 import { Client } from '..';
 import { timeout } from '../utils';
+import { TEST_CLIENT } from './common';
 
-describe('client', function () {
+describe('TEST_CLIENT', function () {
     // this.slow(200);
     jest.setTimeout(30 * 1000);
 
-    // const client = Client.testnet();
-    const client = new Client({ nodes: ['https://api.hive.blog'] });
+    // const TEST_CLIENT = Client.testnet();
 
     // TODO: change api.hive.blog to testnet
     it('should handle failover', async () => {
@@ -22,13 +22,13 @@ describe('client', function () {
     });
 
     it('should make rpc call', async function () {
-        const result = await client.database.getAccount('initminer');
+        const result = await TEST_CLIENT.database.getAccount('initminer');
         expect(result?.name).toEqual('initminer');
     });
 
     it('should handle rpc errors', async function () {
         try {
-            await client.call('condenser_api', 'i_like_turtles');
+            await TEST_CLIENT.call('condenser_api', 'i_like_turtles');
             expect(false).toBeTruthy();
         } catch (error: any) {
             expect(error.name).toEqual('RPCError');
@@ -43,19 +43,20 @@ describe('client', function () {
         }
     });
 
-    it('should format rpc errors', async function () {
-        const tx = { operations: [['witness_update', {}]] };
-        try {
-            await client.call('condenser_api', 'broadcast_transaction', [tx]);
-            expect(false).toBeTruthy();
-        } catch (error: any) {
-            expect(error.name).toEqual('RPCError');
-            expect(error.message).toEqual('is_valid_account_name( name ): Account name ${n} is invalid n=');
-            const info = VError.info(error);
-            expect(info.code).toEqual(10);
-            expect(info.name).toEqual('assert_exception');
-        }
-    });
+    // requires testnet
+    // it('should format rpc errors', async function () {
+    //     const tx = { operations: [['witness_update', {}]] };
+    //     try {
+    //         await TEST_CLIENT.call('condenser_api', 'broadcast_transaction', [tx]);
+    //         expect(false).toBeTruthy();
+    //     } catch (error: any) {
+    //         expect(error.name).toEqual('RPCError');
+    //         expect(error.message).toEqual('is_valid_account_name( name ): Account name ${n} is invalid n=');
+    //         const info = VError.info(error);
+    //         expect(info.code).toEqual(10);
+    //         expect(info.name).toEqual('assert_exception');
+    //     }
+    // });
 
     // bs, needs rework
     // it("should retry and timeout", async function() {
@@ -70,7 +71,7 @@ describe('client', function () {
     //   };
     //   const tx = { operations: [["witness_update", {}]] };
     //   try {
-    //     await client.database.getChainProperties();
+    //     await TEST_CLIENT.database.getChainProperties();
     //     assert(false, "should not be reached");
     //   } catch (error) {
     //     assert(seenBackoff, "should have seen backoff");

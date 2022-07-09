@@ -3,8 +3,6 @@ import { Memo } from '../chain/memo';
 
 describe('memo', function () {
     it('should encode and decode memo successfully without prefix', async () => {
-        // this.slow(500);
-        // this.timeout(20 * 1000);
         const baseMemo = 'testingtesting';
         const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
         const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';
@@ -18,8 +16,6 @@ describe('memo', function () {
     });
 
     it('should encode and decode memo successfully with prefix input but without prefix output', async () => {
-        // this.slow(500);
-        // this.timeout(20 * 1000);
         const baseMemo = '#testingtesting';
         const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
         const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';
@@ -30,8 +26,6 @@ describe('memo', function () {
     });
 
     it('should encode and decode memo successfully with prefix input but with prefix output ', async () => {
-        // this.slow(500);
-        // this.timeout(20 * 1000);
         const baseMemo = 'testingtesting';
         const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
         const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';
@@ -42,8 +36,6 @@ describe('memo', function () {
     });
 
     it('should encode and decode memo successfully with prefix input and with prefix output', async () => {
-        // this.slow(500);
-        // this.timeout(20 * 1000);
         const baseMemo = '#testingtesting';
         const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
         const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';

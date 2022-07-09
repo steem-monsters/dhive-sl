@@ -1,11 +1,9 @@
 import { Client, SignedBlock, AppliedOperation } from '..';
-import { agent, TEST_NODE } from './common';
+import { agent, TEST_CLIENT, TEST_NODE } from './common';
 
 describe('blockchain', function () {
     // this.slow(5 * 1000);
     jest.setTimeout(60 * 1000);
-
-    const client = new Client({ nodes: [TEST_NODE], agent });
 
     const expectedIds = ['0000000109833ce528d5bbfb3f6225b39ee10086', '00000002ed04e3c3def0238f693931ee7eebbdf1'];
     const expectedOps = [
@@ -70,7 +68,7 @@ describe('blockchain', function () {
 
     it('should yield blocks', async function () {
         const ids: string[] = [];
-        for await (const block of client.blockchain.getBlocks({ from: 1, to: 2 })) {
+        for await (const block of TEST_CLIENT.blockchain.getBlocks({ from: 1, to: 2 })) {
             ids.push(block.block_id);
         }
         expect(ids).toEqual(expectedIds);
@@ -78,7 +76,7 @@ describe('blockchain', function () {
 
     it('should stream blocks', async function () {
         await new Promise((resolve, reject) => {
-            const stream = client.blockchain.getBlockStream({ from: 1, to: 2 });
+            const stream = TEST_CLIENT.blockchain.getBlockStream({ from: 1, to: 2 });
             const ids: string[] = [];
             stream.on('data', (block: SignedBlock) => {
                 ids.push(block.block_id);
@@ -93,7 +91,7 @@ describe('blockchain', function () {
 
     it('should yield operations', async function () {
         const ops: string[] = [];
-        for await (const operation of client.blockchain.getOperations({
+        for await (const operation of TEST_CLIENT.blockchain.getOperations({
             from: 13300000,
             to: 13300001,
         })) {
@@ -104,7 +102,7 @@ describe('blockchain', function () {
 
     it('should stream operations', async function () {
         await new Promise((resolve, reject) => {
-            const stream = client.blockchain.getOperationsStream({
+            const stream = TEST_CLIENT.blockchain.getOperationsStream({
                 from: 13300000,
                 to: 13300001,
             });
@@ -122,10 +120,10 @@ describe('blockchain', function () {
 
     // nonsense - feel free to investigate
     // it("should yield latest blocks", async function() {
-    //   const latest = await client.blockchain.getCurrentBlock(
+    //   const latest = await TEST_CLIENT.blockchain.getCurrentBlock(
     //     BlockchainMode.Latest
     //   );
-    //   for await (const block of client.blockchain.getBlocks({
+    //   for await (const block of TEST_CLIENT.blockchain.getBlocks({
     //     mode: BlockchainMode.Latest
     //   })) {
     //     if (block.block_id === latest.block_id) {
@@ -142,7 +140,7 @@ describe('blockchain', function () {
 
     it('should handle errors on stream', async function () {
         await new Promise((resolve) => {
-            const stream = client.blockchain.getBlockStream(Number.MAX_VALUE);
+            const stream = TEST_CLIENT.blockchain.getBlockStream(Number.MAX_VALUE);
             stream.on('data', () => {
                 expect(false).toBe(true);
             });
@@ -153,9 +151,9 @@ describe('blockchain', function () {
     });
 
     it('should get block number stream', async function () {
-        const current = await client.blockchain.getCurrentBlockNum();
+        const current = await TEST_CLIENT.blockchain.getCurrentBlockNum();
         await new Promise(async (resolve, reject) => {
-            const stream = client.blockchain.getBlockNumberStream();
+            const stream = TEST_CLIENT.blockchain.getBlockNumberStream();
             stream.on('data', (num) => {
                 expect(num).toBeGreaterThanOrEqual(current);
                 resolve(true);
@@ -166,7 +164,7 @@ describe('blockchain', function () {
 
     it('should get current block header', async function () {
         const now = Date.now();
-        const header = await client.blockchain.getCurrentBlockHeader();
+        const header = await TEST_CLIENT.blockchain.getCurrentBlockHeader();
         const ts = new Date(header.timestamp + 'Z').getTime();
         expect(Math.abs(ts / 1000 - now / 1000)).toBeLessThan(120);
     });
