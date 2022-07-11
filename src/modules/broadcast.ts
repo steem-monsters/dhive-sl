@@ -73,6 +73,23 @@ export interface CustomJsonOptions {
     activeAuth?: boolean;
 }
 
+export interface UpdateAccountAuthorityThreshold {
+    account: string;
+    threshold: number;
+    role: 'owner' | 'active' | 'posting';
+    broadcastKey: string | PrivateKey;
+}
+
+export interface UpdateAccountAuthority {
+    method: 'add' | 'remove';
+    account: string;
+    authority: string;
+    authorityType: 'key' | 'account';
+    role: KeyRole;
+    weight?: number;
+    broadcastKey: string | PrivateKey;
+}
+
 export class BroadcastAPI {
     /**
      * How many milliseconds in the future to set the expiry time to when
@@ -252,32 +269,50 @@ export class BroadcastAPI {
     }
 
     /**
-     * Adds/removes a [active/posting/memo/owner] key to/from a given hive account
+     * Updates account authority and adds/removes specific account/key as [owner/active/posting] authority or sets memo-key
      */
-    public async updateAccountKeys(name: string, type: KeyRole, method: 'add' | 'remove', publicKey: string, broadcastKey: string) {
-        const account = await this.client.database.getAccount(name, { logErrors: false });
-        if (!account) return { status: 'error', message: 'Account does not exists' };
+    public async updateAccountAuthority({ method, account, authority, authorityType, role, weight = 1, broadcastKey }: UpdateAccountAuthority) {
+        const existingAccount = await this.client.database.getAccount(account, { logErrors: false });
+        if (!existingAccount?.name) throw new Error('Account does not exists');
 
-        const authority = account[type];
-        if (type !== 'memo') {
+        const accountAuthority = existingAccount[role];
+        const authorityKey = `${authorityType}_auths`;
+
+        if (role !== 'memo') {
             if (method === 'remove') {
-                authority.key_auths = authority.key_auths.filter((k: [string, number]) => k[0] !== publicKey);
-                if (authority.key_auths.length < 1) return { status: 'error', message: `Can't reduce keys to less than 1` };
+                accountAuthority[authorityKey] = accountAuthority[authorityKey].filter((k: [string, number]) => k[0] !== authority);
+                if (authorityType === 'key' && accountAuthority[authorityKey].length < 1) throw new Error('Can not reduce authority keys to less than 1');
             } else {
-                authority.key_auths.push([publicKey, 1]);
-                authority.key_auths = authority.key_auths.sort((a: [string, number], b: [string, number]) => a[0].localeCompare(b[0]));
+                accountAuthority[authorityKey].push([authority, weight]);
+                accountAuthority[authorityKey] = accountAuthority[authorityKey].sort((a: [string, number], b: [string, number]) => a[0].localeCompare(b[0]));
             }
         }
 
-        const op: AccountUpdateOperation = [
-            'account_update',
-            { account: name, json_metadata: JSON.stringify(account.json_metadata), memo_key: account.memo_key, active: account.active, posting: account.posting },
-        ];
+        const data: AccountUpdateOperation[1] = {
+            account,
+            json_metadata: JSON.stringify(existingAccount.json_metadata),
+            memo_key: existingAccount.memo_key,
+        };
+        data[role] = role !== 'memo' ? accountAuthority : authority;
 
-        op[type] = type !== 'memo' ? authority : publicKey;
+        return this.updateAccount(data, broadcastKey);
+    }
 
-        const result = await this.sendOperations([op], broadcastKey);
-        return result?.id ? { status: 'success', data: result } : { status: 'error', message: 'broadcast api error', data: result };
+    /**
+     * Changes authority threshold. Default is at 1. This changes how many keys/account authorities you need to successfuly sign & broadcast a transaction
+     */
+    public async updateAccountAuthorityThreshold({ account, threshold, role, broadcastKey }: UpdateAccountAuthorityThreshold) {
+        const existingAccount = await this.client.database.getAccount(account, { logErrors: false });
+        if (!existingAccount?.name) throw new Error('Account does not exists');
+
+        const data: AccountUpdateOperation[1] = {
+            account,
+            json_metadata: JSON.stringify(existingAccount.json_metadata),
+            memo_key: existingAccount.memo_key,
+        };
+        data[role] = { ...existingAccount[role], weight_threshold: threshold };
+
+        return this.updateAccount(data, broadcastKey);
     }
 
     /**
