@@ -17,10 +17,14 @@ import { Client } from '../client';
 import { KeyRole } from '../chain/keys/utils';
 import { PublicKey } from '../chain/keys/keys';
 
+export interface TxSignPropertiesBase {
+    ref_block_num: DynamicGlobalProperties['last_irreversible_block_num'] | DynamicGlobalProperties['head_block_number'];
+    ref_block_prefix: string;
+}
+
 export interface TxSignProperties {
-    ref_block_num: DynamicGlobalProperties['last_irreversible_block_num'];
-    ref_block_id: BlockHeader['previous'];
-    ref_block_prefix: number;
+    latest: TxSignPropertiesBase;
+    irreversible: TxSignPropertiesBase;
     time: Date;
 }
 
@@ -96,15 +100,20 @@ export class DatabaseAPI {
      * Loads & caches properties to sign transactions with
      */
     public async getTxSignProperties() {
-        // Check if the chain properties need to be reloaded
+        // Realods txSignProperties if it's empty or older than 60 seconds
         if (!this.txSignProperties || this.txSignProperties.time.getTime() < Date.now() - 60 * 1000) {
-            const result = await this.client.database.getDynamicGlobalProperties();
-            const header = await this.client.database.getBlockHeader(result.last_irreversible_block_num);
+            const result = await this.getDynamicGlobalProperties();
+            const irreversibleHeader = await this.getBlockHeader(result.last_irreversible_block_num);
 
             this.txSignProperties = {
-                ref_block_num: result.last_irreversible_block_num,
-                ref_block_id: header.previous,
-                ref_block_prefix: Buffer.from(header.previous, 'hex').readUInt32LE(4),
+                latest: {
+                    ref_block_num: result.head_block_number,
+                    ref_block_prefix: result.head_block_id,
+                },
+                irreversible: {
+                    ref_block_num: result.last_irreversible_block_num,
+                    ref_block_prefix: irreversibleHeader.previous,
+                },
                 time: new Date(result.time + 'Z'),
             };
         }

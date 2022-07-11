@@ -1,4 +1,4 @@
-import { Asset } from '..';
+import { Asset, PrivateKey, generatePassword, Transaction } from '..';
 import { TEST_CLIENT } from './common';
 
 describe('database api', function () {
@@ -140,11 +140,10 @@ describe('database api', function () {
 
     // it('verifyAuthority', async function () {
     //     // this.slow(5 * 1000);
-    //     const tx = new Transaction({
-    //         ref_block_num: 0,
-    //         ref_block_prefix: 0,
-    //         expiration: '2000-01-01T00:00:00',
-    //         operations: [
+    //     const txSignProperties = await TEST_CLIENT.database.getTxSignProperties();
+    //     const tx = Transaction.from(
+    //         txSignProperties,
+    //         [
     //             [
     //                 'custom_json',
     //                 {
@@ -155,10 +154,10 @@ describe('database api', function () {
     //                 },
     //             ],
     //         ],
-    //         extensions: [],
-    //     });
-    //     const key = PrivateKey.fromLogin('test', generatePassword(), 'posting');
+    //         'latest',
+    //     );
 
+    //     const key = PrivateKey.fromLogin('test', generatePassword(), 'posting');
     //     const stx = TEST_CLIENT.broadcast.sign(tx, key);
     //     const rv = await TEST_CLIENT.database.verifyAuthority(stx);
     //     expect(rv).toBeTruthy();

@@ -25,6 +25,7 @@ import { log } from '../utils';
 import { Client } from '../client';
 import { PrivateKey, PublicKey } from '../chain/keys/keys';
 import { KeyRole } from '../chain/keys/utils';
+import { BlockchainMode } from './blockchain';
 
 export interface CreateAccountOptions {
     /**
@@ -70,14 +71,14 @@ export interface CustomJsonOptions {
     id: string;
     json: Record<string, any>;
     account: string;
-    activeAuth?: boolean;
+    role?: 'active' | 'posting';
 }
 
 export interface UpdateAccountAuthorityThreshold {
     account: string;
     threshold: number;
     role: 'owner' | 'active' | 'posting';
-    broadcastKey: string | PrivateKey;
+    broadcastKey: string | PrivateKey | string[] | PrivateKey[];
 }
 
 export interface UpdateAccountAuthority {
@@ -87,7 +88,7 @@ export interface UpdateAccountAuthority {
     authorityType: 'key' | 'account';
     role: KeyRole;
     weight?: number;
-    broadcastKey: string | PrivateKey;
+    broadcastKey: string | PrivateKey | string[] | PrivateKey[];
 }
 
 export class BroadcastAPI {
@@ -95,7 +96,7 @@ export class BroadcastAPI {
      * How many milliseconds in the future to set the expiry time to when
      * broadcasting a transaction, defaults to 1 minute.
      */
-    public expireTime = 60 * 1000;
+    public expireTime = 600 * 1000;
 
     constructor(readonly client: Client) {}
 
@@ -104,7 +105,7 @@ export class BroadcastAPI {
      * @param comment The comment/post.
      * @param key Private posting key of comment author.
      */
-    public async comment(comment: CommentOperation[1], key: string | PrivateKey) {
+    public async comment(comment: CommentOperation[1], key: string | PrivateKey | string[] | PrivateKey[]) {
         const op: Operation = ['comment', comment];
         return this.sendOperations([op], key);
     }
@@ -115,7 +116,7 @@ export class BroadcastAPI {
      * @param options The comment/post options.
      * @param key Private posting key of comment author.
      */
-    public async commentWithOptions(comment: CommentOperation[1], options: CommentOptionsOperation[1], key: string | PrivateKey) {
+    public async commentWithOptions(comment: CommentOperation[1], options: CommentOptionsOperation[1], key: string | PrivateKey | string[] | PrivateKey[]) {
         const ops: Operation[] = [
             ['comment', comment],
             ['comment_options', options],
@@ -128,7 +129,7 @@ export class BroadcastAPI {
      * @param vote The vote to send.
      * @param key Private posting key of the voter.
      */
-    public async vote(vote: VoteOperation[1], key: string | PrivateKey) {
+    public async vote(vote: VoteOperation[1], key: string | PrivateKey | string[] | PrivateKey[]) {
         const op: Operation = ['vote', vote];
         return this.sendOperations([op], key);
     }
@@ -138,7 +139,7 @@ export class BroadcastAPI {
      * @param data The transfer operation payload.
      * @param key Private active key of sender.
      */
-    public async transfer(data: TransferOperation[1], key: string | PrivateKey) {
+    public async transfer(data: TransferOperation[1], key: string | PrivateKey | string[] | PrivateKey[]) {
         const op: Operation = ['transfer', data];
         return this.sendOperations([op], key);
     }
@@ -148,20 +149,20 @@ export class BroadcastAPI {
      * @param data The custom_json operation payload.
      * @param key Private posting or active key.
      */
-    public async customJson(data: CustomJsonOptions, key: string | PrivateKey) {
+    public async customJson(data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
         const opData: CustomJsonOperation[1] = {
             id: data.id,
             json: JSON.stringify(data.json),
-            required_auths: data.activeAuth ? [data.account] : [],
-            required_posting_auths: data.activeAuth ? [] : [data.account],
+            required_auths: data.role === 'active' ? [data.account] : [],
+            required_posting_auths: data.role === 'posting' ? [data.account] : [],
         };
         const op: Operation = ['custom_json', opData];
         return this.sendOperations([op], key);
     }
 
-    public async customJsonQueue(data: CustomJsonOptions, key: string | PrivateKey) {
+    public async customJsonQueue(data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
         return new Promise((resolve, reject) => {
-            this.client.queueTransaction(data, key, (data: CustomJsonOptions, key: string | PrivateKey) =>
+            this.client.queueTransaction(data, key, (data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) =>
                 this.customJson(data, key)
                     .then((r) => {
                         log(`Custom JSON [${data.id}] broadcast successfully - Tx: [${r.id}].`, 3);
@@ -180,7 +181,7 @@ export class BroadcastAPI {
      * @param options New account options.
      * @param key Private active key of account creator.
      */
-    public async createTestAccount(options: CreateAccountOptions, key: string | PrivateKey) {
+    public async createTestAccount(options: CreateAccountOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
         assert(global.hasOwnProperty('it'), 'helper to be used only for mocha tests');
 
         const { username, metadata, creator } = options;
@@ -263,7 +264,7 @@ export class BroadcastAPI {
      * @param key The private key of the account affected, should be the corresponding
      *            key level or higher for updating account authorities.
      */
-    public async updateAccount(data: AccountUpdateOperation[1], key: string | PrivateKey) {
+    public async updateAccount(data: AccountUpdateOperation[1], key: string | PrivateKey | string[] | PrivateKey[]) {
         const op: Operation = ['account_update', data];
         return this.sendOperations([op], key);
     }
@@ -318,7 +319,7 @@ export class BroadcastAPI {
     /**
      * Start account recovery request. Requires private owner key of account to recover.
      */
-    public changeRecoveryAccount(data: ChangeRecoveryAccountOperation[1], ownerKey: string | PrivateKey) {
+    public changeRecoveryAccount(data: ChangeRecoveryAccountOperation[1], ownerKey: string | PrivateKey | string[] | PrivateKey[]) {
         const op: Operation = ['change_recovery_account', data];
         return this.sendOperations([op], ownerKey);
     }
@@ -335,63 +336,45 @@ export class BroadcastAPI {
      * @param options Delegation options.
      * @param key Private active key of the delegator.
      */
-    public async delegateVestingShares(options: DelegateVestingSharesOperation[1], key: string | PrivateKey) {
+    public async delegateVestingShares(options: DelegateVestingSharesOperation[1], key: string | PrivateKey | string[] | PrivateKey[]) {
         const op: Operation = ['delegate_vesting_shares', options];
         return this.sendOperations([op], key);
     }
 
     /**
      * Sign and broadcast transaction with operations to the network. Throws if the transaction expires.
-     * @param operations List of operations to send.
+     * @param ops List of operations to send.
      * @param key Private key(s) used to sign transaction.
      */
-    public async sendOperations(operations: Operation[], key: string | string[] | PrivateKey | PrivateKey[]): Promise<TransactionConfirmation> {
-        const props = await this.client.database.getDynamicGlobalProperties();
-
-        const ref_block_num = props.head_block_number & 0xffff;
-        const ref_block_prefix = Buffer.from(props.head_block_id, 'hex').readUInt32LE(4);
-        const expiration = new Date(new Date(props.time + 'Z').getTime() + this.expireTime).toISOString().slice(0, -5);
-        const extensions = [];
-
-        const tx = new Transaction({
-            expiration,
-            extensions,
-            operations,
-            ref_block_num,
-            ref_block_prefix,
-        });
-
-        const result = await this.send(this.sign(tx, key));
-        // assert(result.expired === false, 'transaction expired')
-
+    public async sendOperations(
+        ops: Operation[],
+        key: string | string[] | PrivateKey | PrivateKey[],
+        mode: BlockchainMode = this.client.blockchainMode,
+    ): Promise<TransactionConfirmation> {
+        const tx = await this.createTransaction(ops, mode);
+        const signedTx = this.sign(tx, key);
+        const result = await this.send(signedTx);
+        // assert(result.expired === false, 'transaction expired');
         return result;
     }
 
     /**
-     * Sign a transaction with key(s).
+     * Creates & prepares transaction for signing & broadcasting
+     * @param ops List of operations for transaction
+     * @param mode BlockchainMode - default: irreversible
      */
-    public sign(transaction: Transaction, key: string | string[] | PrivateKey | PrivateKey[]): SignedTransaction {
-        return transaction.sign(key, this.client.chainId);
+    public async createTransaction(ops: Operation[], mode: BlockchainMode = this.client.blockchainMode) {
+        const txSignProperties = await this.client.database.getTxSignProperties();
+        return Transaction.from(txSignProperties, ops, mode);
     }
 
     /**
-     * Sign a transaction with key (Custom function by Splinterlands)
+     * Signs transaction for broadcasting
+     * @param transaction Prepared transaction (i.e. via createTransaction)
+     * @param key Private key(s) used to sign transaction.
      */
-    public async signCustom(tx: Transaction, key: string | string[] | PrivateKey | PrivateKey[]) {
-        const chainProps = await this.client.database.getTxSignProperties();
-
-        const preparedTx: Transaction = Object.assign(
-            {
-                ref_block_num: chainProps.ref_block_num & 0xffff,
-                ref_block_prefix: chainProps.ref_block_prefix,
-                expiration: new Date(chainProps.time.getTime() + 600 * 1000).toISOString().split('.')[0],
-                extensions: [],
-            },
-            tx,
-        );
-
-        const signedTx = this.client.broadcast.sign(preparedTx, key);
-        return signedTx;
+    public sign(transaction: Transaction, key: string | string[] | PrivateKey | PrivateKey[]): SignedTransaction {
+        return transaction.sign(key, this.client.chainId);
     }
 
     /**
@@ -400,7 +383,7 @@ export class BroadcastAPI {
     public async send(transaction: SignedTransaction): Promise<TransactionConfirmation> {
         const trxId = transaction.generateTrxId();
         const result = await this.call('broadcast_transaction', [transaction]);
-        return Object.assign({ id: trxId }, result);
+        return { ...result, id: trxId };
     }
 
     /**

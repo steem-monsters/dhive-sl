@@ -9,16 +9,7 @@ import { iteratorStream, log, sleep, timeout } from '../utils';
 import fs from 'fs';
 import { SignedBlock } from '../chain/block';
 
-export enum BlockchainMode {
-    /**
-     * Only get irreversible blocks.
-     */
-    Irreversible,
-    /**
-     * Get all blocks (including reversible)
-     */
-    Latest,
-}
+export type BlockchainMode = 'irreversible' | 'latest';
 
 export interface BlockchainStreamOptions {
     /**
@@ -58,7 +49,7 @@ export class Blockchain {
 
     constructor(readonly client: Client, streamParameters: SLBlockchainStreamParameters = {}) {
         this.streamOptions = {
-            mode: BlockchainMode.Latest,
+            mode: 'latest',
             blocksBehindHead: 0,
             saveState: (state) => this.saveState(state),
             loadState: () => this.loadState(),
@@ -77,12 +68,12 @@ export class Blockchain {
     /**
      * Get latest block number.
      */
-    public async getCurrentBlockNum(mode = BlockchainMode.Irreversible) {
+    public async getCurrentBlockNum(mode: BlockchainMode = 'irreversible') {
         const props = await this.client.database.getDynamicGlobalProperties();
         switch (mode) {
-            case BlockchainMode.Irreversible:
+            case 'irreversible':
                 return props.last_irreversible_block_num;
-            case BlockchainMode.Latest:
+            case 'latest':
                 return props.head_block_number;
         }
     }
@@ -110,7 +101,7 @@ export class Blockchain {
                 return;
             }
 
-            const currentBlockNum = mode === BlockchainMode.Irreversible ? result.last_irreversible_block_num : result.head_block_number - this.streamOptions.blocksBehindHead;
+            const currentBlockNum = mode === 'irreversible' ? result.last_irreversible_block_num : result.head_block_number - this.streamOptions.blocksBehindHead;
 
             if (!this.lastBlock || isNaN(this.lastBlock)) this.lastBlock = currentBlockNum - 1;
 

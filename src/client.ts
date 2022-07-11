@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { VError } from 'verror';
 import fetch from 'cross-fetch';
-import { Blockchain, SLBlockchainStreamParameters } from './modules/blockchain';
+import { Blockchain, BlockchainMode, SLBlockchainStreamParameters } from './modules/blockchain';
 import { BroadcastAPI } from './modules/broadcast';
 import { DatabaseAPI } from './modules/database';
 import { HivemindAPI } from './modules/hivemind';
@@ -74,7 +74,7 @@ interface RpcNode extends Partial<BeaconNode> {
 
 interface TxInQueue {
     data: any;
-    key: string | PrivateKey;
+    key: string | PrivateKey | string[] | PrivateKey[];
     txCall: any;
 }
 
@@ -118,6 +118,11 @@ export interface ClientOptions {
     loggingLevel?: LogLevel;
 
     /**
+     * Whether transactions should be based on latest or irreversible blocks by default
+     */
+    blockchainMode?: BlockchainMode;
+
+    /**
      * Options for block streaming methods (Splinterlands)
      */
     stream?: SLBlockchainStreamParameters;
@@ -158,45 +163,6 @@ export interface ClientOptions {
  * Can be used in both node.js and the browser. Also see {@link ClientOptions}.
  */
 export class Client {
-    /**
-     * Interal nodes variable
-     */
-    private _nodes: RpcNode[];
-
-    /**
-     * Getter for combined _nodes and beaconNodes
-     */
-    public get nodes() {
-        const bnodes: RpcNode[] = [];
-        for (let i = 0; i < this.beaconNodes.length; i++) {
-            const bnode = this.beaconNodes[i];
-            const nodeExists = this._nodes.filter((node) => node.endpoint === bnode.endpoint)[0];
-            if (!nodeExists) bnodes.push(bnode);
-        }
-        const combinedNodes = this._nodes.concat(bnodes);
-        if (!this.currentNode) this.currentNode = combinedNodes[0];
-        return combinedNodes;
-    }
-
-    /**
-     * Setter for combined _nodes and beaconNodes
-     */
-    public set nodes(nodes: RpcNode[]) {
-        const _nodes: RpcNode[] = [];
-        const bnodes: RpcNode[] = [];
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            // is beacon node
-            if (node.score) {
-                bnodes.push(node);
-            } else {
-                _nodes.push(node);
-            }
-        }
-        this.beaconNodes = bnodes;
-        this._nodes = _nodes;
-    }
-
     /**
      * Client options, *read-only*.
      */
@@ -279,6 +245,11 @@ export class Client {
     private nodeErrorLimit: number;
 
     /**
+     * Whether transactions should be based on latest or irreversible blocks by default
+     */
+    public readonly blockchainMode: BlockchainMode;
+
+    /**
      * Current node of nodes
      */
     private currentNode: RpcNode;
@@ -309,6 +280,45 @@ export class Client {
     private isInitialized: boolean;
 
     /**
+     * Interal nodes variable
+     */
+    private _nodes: RpcNode[];
+
+    /**
+     * Getter for combined _nodes and beaconNodes
+     */
+    public get nodes() {
+        const bnodes: RpcNode[] = [];
+        for (let i = 0; i < this.beaconNodes.length; i++) {
+            const bnode = this.beaconNodes[i];
+            const nodeExists = this._nodes.filter((node) => node.endpoint === bnode.endpoint)[0];
+            if (!nodeExists) bnodes.push(bnode);
+        }
+        const combinedNodes = this._nodes.concat(bnodes);
+        if (!this.currentNode) this.currentNode = combinedNodes[0];
+        return combinedNodes;
+    }
+
+    /**
+     * Setter for combined _nodes and beaconNodes
+     */
+    public set nodes(nodes: RpcNode[]) {
+        const _nodes: RpcNode[] = [];
+        const bnodes: RpcNode[] = [];
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            // is beacon node
+            if (node.score) {
+                bnodes.push(node);
+            } else {
+                _nodes.push(node);
+            }
+        }
+        this.beaconNodes = bnodes;
+        this._nodes = _nodes;
+    }
+
+    /**
      * @param options Client options.
      */
     constructor(options: ClientOptions = {}) {
@@ -331,6 +341,7 @@ export class Client {
         this.timeout = options.timeout || 1000;
         this.nodeErrorLimit = options.nodeErrorLimit || 10;
         this.transactionQueue = [];
+        this.blockchainMode = options.blockchainMode || 'latest';
 
         this.database = new DatabaseAPI(this);
         this.broadcast = new BroadcastAPI(this);
@@ -496,38 +507,6 @@ export class Client {
 
         const { response }: { response: RPCResponse } = await this.retryingFetch(opts, api, method, params);
 
-        // resolve FC error messages into something more readable
-        if (response.error) {
-            const formatValue = (value: any) => {
-                switch (typeof value) {
-                    case 'object':
-                        return JSON.stringify(value);
-                    default:
-                        return String(value);
-                }
-            };
-            const { data } = response.error;
-            let { message } = response.error;
-            if (data && data.stack && data.stack.length > 0) {
-                const top = data.stack[0];
-                const topData = copy(top.data);
-                message = top.format.replace(/\$\{([a-z_]+)\}/gi, (match: string, key: string) => {
-                    let rv = match;
-                    if (topData[key]) {
-                        rv = formatValue(topData[key]);
-                        delete topData[key];
-                    }
-                    return rv;
-                });
-                const unformattedData = Object.keys(topData)
-                    .map((key) => ({ key, value: formatValue(topData[key]) }))
-                    .map((item) => `${item.key}=${item.value}`);
-                if (unformattedData.length > 0) {
-                    message += ' ' + unformattedData.join(' ');
-                }
-            }
-            throw new VError({ info: data, name: 'RPCError' }, message);
-        }
         assert.equal(response.id, request.id, 'got invalid response id');
         return response.result;
     }
@@ -549,7 +528,42 @@ export class Client {
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
-                        return { response: await response.json() };
+
+                        const json = await response.json();
+                        // resolve FC error messages into something more readable
+                        if (json.error) {
+                            const formatValue = (value: any) => {
+                                switch (typeof value) {
+                                    case 'object':
+                                        return JSON.stringify(value);
+                                    default:
+                                        return String(value);
+                                }
+                            };
+                            const { data } = json.error;
+                            let { message } = json.error;
+                            if (data && data.stack && data.stack.length > 0) {
+                                const top = data.stack[0];
+                                const topData = copy(top.data);
+                                message = top.format.replace(/\$\{([a-z_]+)\}/gi, (match: string, key: string) => {
+                                    let rv = match;
+                                    if (topData[key]) {
+                                        rv = formatValue(topData[key]);
+                                        delete topData[key];
+                                    }
+                                    return rv;
+                                });
+                                const unformattedData = Object.keys(topData)
+                                    .map((key) => ({ key, value: formatValue(topData[key]) }))
+                                    .map((item) => `${item.key}=${item.value}`);
+                                if (unformattedData.length > 0) {
+                                    message += ' ' + unformattedData.join(' ');
+                                }
+                            }
+                            throw new VError({ info: data, name: 'RPCError' }, message);
+                        }
+
+                        return { response: json };
                     } catch (error: any) {
                         error.isTxError = isTxError(error);
                         if (error.isTxError) throw error;
@@ -592,7 +606,7 @@ export class Client {
         }
     }
 
-    async queueTransaction(data: any, key: string | PrivateKey, txCall: any) {
+    async queueTransaction(data: any, key: string | PrivateKey | string[] | PrivateKey[], txCall: any) {
         this.transactionQueue.push({ data, key, txCall });
     }
 

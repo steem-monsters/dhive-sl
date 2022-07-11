@@ -46,12 +46,12 @@ export class EngineApi {
         this.client = new EngineClient(this.options.url);
     }
 
-    public async broadcast(op: EngineOperation, account: string, privateKey: string | PrivateKey, activeAuth?: boolean) {
+    public async broadcast(op: EngineOperation, account: string, privateKey: string | PrivateKey | string[] | PrivateKey[], role: 'active' | 'posting' = 'posting') {
         const json: EngineOperationJson = { contractName: op[0], contractAction: op[1], contractPayload: op[2] };
-        return this.hiveClient.broadcast.customJsonQueue({ id: this.options.chainId, account, activeAuth, json }, privateKey);
+        return this.hiveClient.broadcast.customJsonQueue({ id: this.options.chainId, account, role, json }, privateKey);
     }
 
-    public async transfer(data: TokensTransferOperation[2], from: string, privateKey: string | PrivateKey) {
+    public async transfer(data: TokensTransferOperation[2], from: string, privateKey: string | PrivateKey | string[] | PrivateKey[]) {
         const op: TokensTransferOperation = ['tokens', 'transfer', data];
         return this.broadcast(op as EngineOperation, from, privateKey);
     }

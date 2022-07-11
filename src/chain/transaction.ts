@@ -11,6 +11,8 @@ import { Types } from './serializer';
 import { PrivateKey, Signature } from './keys/keys';
 import { hash } from '../crypto';
 import { DEFAULT_CHAIN_ID } from '../constants';
+import { TxSignProperties } from '../modules/database';
+import { BlockchainMode } from '../modules/blockchain';
 
 interface TransactionParameters {
     ref_block_num: number;
@@ -47,6 +49,23 @@ export class Transaction {
     }
 
     /**
+     *
+     * @param txSignProperties txSignProperties via client.database.getTxSignProperties()
+     * @param ops operations
+     * @param mode 'latest' | 'irreversible'
+     */
+    public static from(txSignProperties: TxSignProperties, ops: Operation[], mode: BlockchainMode) {
+        const props = txSignProperties[mode];
+        return new Transaction({
+            ref_block_num: props.ref_block_num & 0xffff,
+            ref_block_prefix: Buffer.from(props.ref_block_prefix, 'hex').readUInt32LE(4),
+            expiration: new Date(txSignProperties.time.getTime() + 60 * 1000).toISOString().split('.')[0],
+            extensions: [],
+            operations: ops,
+        });
+    }
+
+    /**
      * Returns the public key a signature was signed with
      */
     public recoverKeyFromSignature(signature: string, chainId?: Buffer) {
@@ -80,7 +99,7 @@ export class Transaction {
      * Return copy of transaction with signature appended to signatures array.
      * @param transaction Transaction to sign.
      * @param keys Key(s) to sign transaction with.
-     * @param options Chain id and address prefix, compatible with {@link Client}.
+     * @param options Chain id and address prefix, compatible with Client
      */
     public sign(keys: string | string[] | PrivateKey | PrivateKey[], chainId: Buffer = DEFAULT_CHAIN_ID) {
         const digest = this.digest(chainId);
