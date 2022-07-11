@@ -94,7 +94,7 @@ export interface UpdateAccountAuthority {
 export class BroadcastAPI {
     /**
      * How many milliseconds in the future to set the expiry time to when
-     * broadcasting a transaction, defaults to 1 minute.
+     * broadcasting a transaction, defaults to 10 minutes.
      */
     public expireTime = 600 * 1000;
 
