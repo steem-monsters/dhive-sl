@@ -149,20 +149,20 @@ export class BroadcastAPI {
      * @param data The custom_json operation payload.
      * @param key Private posting or active key.
      */
-    public async customJson(data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
+    public async customJson({ id, account, json, role = 'posting' }: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
         const opData: CustomJsonOperation[1] = {
-            id: data.id,
-            json: JSON.stringify(data.json),
-            required_auths: data.role === 'active' ? [data.account] : [],
-            required_posting_auths: data.role === 'posting' ? [data.account] : [],
+            id,
+            json: JSON.stringify(json),
+            required_auths: role === 'active' ? [account] : [],
+            required_posting_auths: role == 'posting' ? [account] : [],
         };
         const op: Operation = ['custom_json', opData];
         return this.sendOperations([op], key);
     }
 
-    public async customJsonQueue(data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
+    public async customJsonQueue({ id, account, json, role = 'posting' }: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) {
         return new Promise((resolve, reject) => {
-            this.client.queueTransaction(data, key, (data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) =>
+            this.client.queueTransaction({ id, account, json, role }, key, (data: CustomJsonOptions, key: string | PrivateKey | string[] | PrivateKey[]) =>
                 this.customJson(data, key)
                     .then((r) => {
                         log(`Custom JSON [${data.id}] broadcast successfully - Tx: [${r.id}].`, 3);
