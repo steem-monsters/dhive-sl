@@ -14,6 +14,7 @@ import { BeaconAPI, BeaconNode, BeaconParameters } from './modules/beacon';
 import { PrivateKey } from './chain/keys/keys';
 import { Memo } from './chain/memo';
 import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
+import { OperationAPI } from './modules/operation';
 
 interface RPCRequest {
     /**
@@ -190,6 +191,11 @@ export class Client {
     public readonly broadcast: BroadcastAPI;
 
     /**
+     * Operation helper.
+     */
+    public readonly operation: OperationAPI;
+
+    /**
      * Blockchain helper.
      */
     public readonly blockchain: Blockchain;
@@ -345,6 +351,7 @@ export class Client {
 
         this.database = new DatabaseAPI(this);
         this.broadcast = new BroadcastAPI(this);
+        this.operation = new OperationAPI(this);
         this.blockchain = new Blockchain(this, options.stream);
         this.rc = new RCAPI(this);
         this.hivemind = new HivemindAPI(this);
@@ -606,7 +613,7 @@ export class Client {
         }
     }
 
-    async queueTransaction(data: any, key: string | PrivateKey | string[] | PrivateKey[], txCall: any) {
+    async queueTransaction(data: any, key: string | string[] | PrivateKey | PrivateKey[], txCall: any) {
         this.transactionQueue.push({ data, key, txCall });
     }
 
