@@ -59,7 +59,7 @@ export class Transaction {
         return new Transaction({
             ref_block_num: props.ref_block_num & 0xffff,
             ref_block_prefix: Buffer.from(props.ref_block_prefix, 'hex').readUInt32LE(4),
-            expiration: new Date(txSignProperties.time.getTime() + 60 * 1000).toISOString().split('.')[0],
+            expiration: new Date(txSignProperties.time.getTime() + 600 * 1000).toISOString().split('.')[0],
             extensions: [],
             operations: ops,
         });

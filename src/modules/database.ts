@@ -103,7 +103,7 @@ export class DatabaseAPI {
         // Realods txSignProperties if it's empty or older than 60 seconds
         if (!this.txSignProperties || this.txSignProperties.time.getTime() < Date.now() - 60 * 1000) {
             const result = await this.getDynamicGlobalProperties();
-            const irreversibleHeader = await this.getBlockHeader(result.last_irreversible_block_num);
+            const irreversibleBlock = await this.getBlock(result.last_irreversible_block_num);
 
             this.txSignProperties = {
                 latest: {
@@ -112,7 +112,7 @@ export class DatabaseAPI {
                 },
                 irreversible: {
                     ref_block_num: result.last_irreversible_block_num,
-                    ref_block_prefix: irreversibleHeader.previous,
+                    ref_block_prefix: irreversibleBlock.block_id,
                 },
                 time: new Date(result.time + 'Z'),
             };
