@@ -195,15 +195,17 @@ export class BroadcastAPI {
      * @param key Private key(s) used to sign transaction.
      */
     public sign(transaction: Transaction, key: string | string[] | PrivateKey | PrivateKey[]): SignedTransaction {
-        return transaction.sign(key, this.client.chainId);
+        const tx = transaction instanceof Transaction ? transaction : new Transaction(transaction);
+        return tx.sign(key, this.client.chainId);
     }
 
     /**
      * Broadcast a signed transaction to the network.
      */
-    public async send(transaction: SignedTransaction): Promise<TransactionConfirmation> {
-        const trxId = transaction.generateTrxId();
-        const result = await this.call('broadcast_transaction', [transaction]);
+    public async send(signedTransaction: SignedTransaction): Promise<TransactionConfirmation> {
+        const signedTx = signedTransaction instanceof SignedTransaction ? signedTransaction : new SignedTransaction(signedTransaction);
+        const trxId = signedTx.generateTrxId();
+        const result = await this.call('broadcast_transaction', [signedTx]);
         return { ...result, id: trxId };
     }
 
