@@ -2,7 +2,11 @@ import assert from 'assert';
 import * as bs58 from 'bs58';
 import { hash } from '../../crypto';
 
-export type KeyRole = 'owner' | 'active' | 'posting' | 'memo';
+export type KeyRoleOwner = 'owner';
+export type KeyRoleActive = 'active';
+export type KeyRolePosting = 'posting';
+export type KeyRoleMemo = 'memo';
+export type KeyRole = KeyRoleOwner | KeyRoleActive | KeyRolePosting | KeyRoleMemo;
 
 /**
  * Network id used in WIF-encoding.

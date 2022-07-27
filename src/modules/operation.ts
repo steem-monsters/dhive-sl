@@ -7,7 +7,7 @@ import assert from 'assert';
 import { Authority, AuthorityType } from '../chain/account';
 import { Asset } from '../chain/asset';
 import { PrivateKey, PublicKey } from '../chain/keys/keys';
-import { KeyRole } from '../chain/keys/utils';
+import { KeyRole, KeyRoleActive, KeyRoleOwner, KeyRolePosting } from '../chain/keys/utils';
 import {
     AccountUpdateOperation,
     ChangeRecoveryAccountOperation,
@@ -67,20 +67,23 @@ export interface CustomJsonOptions {
     id: string;
     json: Record<string, any>;
     account: string;
-    role?: 'active' | 'posting';
+    role?: KeyRolePosting | KeyRoleActive;
 }
 
 export interface UpdateAccountAuthorityThreshold {
     account: string;
     threshold: number;
-    role: 'owner' | 'active' | 'posting';
+    role: KeyRoleOwner | KeyRolePosting | KeyRoleActive;
 }
 
+export type AccountAuthorityType = 'key' | 'account';
+export type UpdateAccountAuthorityMethod = 'add' | 'remove';
+
 export interface UpdateAccountAuthority {
-    method: 'add' | 'remove';
+    method: UpdateAccountAuthorityMethod;
     account: string;
     authority: string;
-    authorityType: 'key' | 'account';
+    authorityType: AccountAuthorityType;
     role: KeyRole;
     weight?: number;
 }
@@ -220,7 +223,7 @@ export class OperationAPI {
 
         const data: AccountUpdateOperation[1] = {
             account,
-            json_metadata: JSON.stringify(existingAccount.json_metadata),
+            json_metadata: existingAccount.json_metadata,
             memo_key: existingAccount.memo_key,
         };
         data[role] = role !== 'memo' ? accountAuthority : authority;
