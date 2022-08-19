@@ -1,6 +1,6 @@
 {
     "name": "splinterlands-dhive-sl",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "description": "An interface to the Hive blockchain which supports multi-node redundancy for high availability systems. Fork of dhive.",
     "main": "dist/dhive-sl.js",
     "module": "dist/dhive-sl.esm.js",

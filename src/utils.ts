@@ -315,7 +315,16 @@ export const uniqueArray = <T>(a: any[], key?: string): T[] => {
     return [...new Set(a.map((o) => JSON.stringify(o)))].map((s) => JSON.parse(s as any));
 };
 
-export const validateAccountName = (value: string) => {
+export interface ValidateAccountNameSuccess {
+    status: 'success';
+}
+
+export interface ValidateAccountNameError {
+    status: 'error';
+    message: string;
+}
+
+export const validateAccountName = (value: string): ValidateAccountNameSuccess | ValidateAccountNameError => {
     const fn = () => {
         let suffix = 'Account name should ';
         if (!value) {
