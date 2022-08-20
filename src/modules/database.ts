@@ -196,14 +196,14 @@ export class DatabaseAPI {
         const isValidResult = accounts && accounts.length === names.length;
         if (!isValidResult) {
             if (!accounts || accounts.length <= 0) {
-                log(`Error loading account${accounts.length > 1 ? 's' : ''}: ${names.join(', ')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
+                if (logErrors) log(`Error loading account${accounts.length > 1 ? 's' : ''}: ${names.join(', ')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                 return [];
             }
             const missing = names.filter((name) => accounts.filter((r) => r.name === name).length === 0);
             if (missing.length > 0) {
-                log(`Error loading accounts: ${missing.join(',')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
+                if (logErrors) log(`Error loading accounts: ${missing.join(',')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                 if (allOrNothing) {
-                    log(`Returning [] due to failOnMissing`, logErrors ? LogLevel.Warning : LogLevel.Debug);
+                    if (logErrors) log(`Returning [] due to failOnMissing`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                     return [];
                 }
             }

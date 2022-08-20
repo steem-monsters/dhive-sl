@@ -1,6 +1,6 @@
 import assert from 'assert';
 import ByteBuffer from 'bytebuffer';
-import { randomBytes, createHash, sign } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import { PrivateKey, PublicKey, Signature, Transaction, Types } from '..';
 import { DEFAULT_CHAIN_ID } from '../constants';
 

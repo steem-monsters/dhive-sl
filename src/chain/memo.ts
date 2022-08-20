@@ -21,8 +21,7 @@ export class Memo {
     public decode(memo: string, privateKey: string | PrivateKey, memoPrefix = false) {
         assert(memo, 'memo is required');
         assert.equal(typeof memo, 'string', 'memo');
-        if (!memo.match(this.regexPattern)) return memo;
-        memo = memo.substring(this.memoPrefix.length);
+        if (memo.match(this.regexPattern)) memo = memo.substring(this.memoPrefix.length);
 
         this.checkEncryption();
 
@@ -49,9 +48,7 @@ export class Memo {
     public encode(memo: string, publicKey: string | PublicKey, privateKey: string | PrivateKey, testNonce?: string) {
         assert(memo, 'memo is required');
         assert.equal(typeof memo, 'string', 'memo');
-        if (memo.match(this.regexPattern)) {
-            memo = memo.substring(this.memoPrefix.length);
-        }
+        if (memo.match(this.regexPattern)) memo = memo.substring(this.memoPrefix.length);
 
         this.checkEncryption();
 

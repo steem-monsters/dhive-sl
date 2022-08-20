@@ -6,11 +6,12 @@ describe('memo', function () {
         const baseMemo = 'testingtesting';
         const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
         const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';
+        const privateKey2 = '5JYsrHMfTM2Hh3heyPMYvRpuu9gFhoAYghb71EZH7VRLQkHu3Bc';
         const memo = new Memo();
-        const encoded = memo.encode(baseMemo, publicKey, privateKey);
+        const encoded = memo.encode(baseMemo, publicKey, privateKey2);
         const decoded = memo.decode(encoded, privateKey);
         expect(decoded).toEqual(baseMemo);
-        // const hivejsEncoded = hivejs.memo.encode(privateKey, publicKey, baseMemo);
+        // const hivejsEncoded = hivejs.memo.encode(privateKey2, publicKey, `#${baseMemo}`);
         // const hivejsDecoded = memo.decode(hivejsEncoded, privateKey);
         // expect(hivejsDecoded).toEqual(baseMemo);
     });
@@ -20,7 +21,7 @@ describe('memo', function () {
         const privateKey = '5JdeC9P7Pbd1uGdFVEsJ41EkEnADbbHGq6p1BwFxm6txNBsQnsw';
         const publicKey = 'STM8m5UgaFAAYQRuaNejYdS8FVLVp9Ss3K1qAVk5de6F8s3HnVbvA';
         const memo = new Memo();
-        const encoded = memo.encode(baseMemo, publicKey, privateKey);
+        const encoded = memo.encode(baseMemo, publicKey, privateKey).replace('#', '');
         const decoded = memo.decode(encoded, privateKey);
         expect(decoded).toEqual(baseMemo.substring(1));
     });
