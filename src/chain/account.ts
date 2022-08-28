@@ -137,3 +137,68 @@ export interface Account {
     recent_replies?: any[]; // / blog posts for this user // optional<vector<string>>
     recommended?: any[]; // / posts recommened for this user // optional<vector<string>>
 }
+
+export interface ValidateAccountNameSuccess {
+    status: 'success';
+}
+
+export interface ValidateAccountNameError {
+    status: 'error';
+    code: string;
+    message: string;
+}
+
+export enum ValidateAccountNameErrorReason {
+    account_name_should_not_be_empty = 'account_name_should_not_be_empty',
+    account_name_should_be_longer = 'account_name_should_be_longer',
+    account_name_should_be_shorter = 'account_name_should_be_shorter',
+    account_name_segment_should_start_with_a_letter = 'account_name_segment_should_start_with_a_letter',
+    account_name_segment_should_only_have_letters_digits_or_dashes = 'account_name_segment_should_only_have_letters_digits_or_dashes',
+    account_name_segment_should_only_have_one_dash_in_a_row = 'account_name_segment_should_only_have_one_dash_in_a_row',
+    account_name_segment_should_end_with_a_letter_or_digit = 'account_name_segment_should_end_with_a_letter_or_digit',
+    account_name_segment_should_be_longer = 'account_name_segment_should_be_longer',
+}
+
+export const validateAccountName = (value: string): ValidateAccountNameSuccess | ValidateAccountNameError => {
+    const fn = () => {
+        let suffix = 'Account name should ';
+        if (!value) {
+            return { message: suffix + 'not be empty', code: ValidateAccountNameErrorReason.account_name_should_not_be_empty };
+        }
+        const length = value.length;
+        if (length < 3) {
+            return { message: suffix + 'be longer.', code: ValidateAccountNameErrorReason.account_name_should_be_longer };
+        }
+        if (length > 16) {
+            return { message: suffix + 'be shorter.', code: ValidateAccountNameErrorReason.account_name_should_be_shorter };
+        }
+        if (/\./.test(value)) {
+            suffix = 'Each account segment should ';
+        }
+        const ref = value.split('.');
+        for (let i = 0, len = ref.length; i < len; i++) {
+            const label = ref[i];
+            if (!/^[a-z]/.test(label)) {
+                return { message: suffix + 'start with a letter.', code: ValidateAccountNameErrorReason.account_name_segment_should_start_with_a_letter };
+            }
+            if (!/^[a-z0-9-]*$/.test(label)) {
+                return {
+                    message: suffix + 'have only letters, digits, or dashes.',
+                    code: ValidateAccountNameErrorReason.account_name_segment_should_only_have_letters_digits_or_dashes,
+                };
+            }
+            if (/--/.test(label)) {
+                return { message: suffix + 'have only one dash in a row.', code: ValidateAccountNameErrorReason.account_name_segment_should_only_have_one_dash_in_a_row };
+            }
+            if (!/[a-z0-9]$/.test(label)) {
+                return { message: suffix + 'end with a letter or digit.', code: ValidateAccountNameErrorReason.account_name_segment_should_end_with_a_letter_or_digit };
+            }
+            if (!(label.length >= 3)) {
+                return { message: suffix + 'be longer', code: ValidateAccountNameErrorReason.account_name_should_be_longer };
+            }
+        }
+        return null;
+    };
+    const reason = fn();
+    return reason ? { ...reason, status: 'error' } : { status: 'success' };
+};
