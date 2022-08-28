@@ -321,46 +321,49 @@ export interface ValidateAccountNameSuccess {
 
 export interface ValidateAccountNameError {
     status: 'error';
+    code: string;
     message: string;
 }
 
 export const validateAccountName = (value: string): ValidateAccountNameSuccess | ValidateAccountNameError => {
     const fn = () => {
         let suffix = 'Account name should ';
+        let suffixCode = 'account_name_is_';
         if (!value) {
-            return suffix + 'not be empty.';
+            return { message: suffix + 'not be empty', code: suffixCode + 'empty' };
         }
         const length = value.length;
         if (length < 3) {
-            return suffix + 'be longer.';
+            return { message: suffix + 'be longer.', code: suffixCode + 'too_short' };
         }
         if (length > 16) {
-            return suffix + 'be shorter.';
+            return { message: suffix + 'be shorter.', code: suffixCode + 'too_long' };
         }
         if (/\./.test(value)) {
             suffix = 'Each account segment should ';
+            suffixCode = 'account_name_segment';
         }
         const ref = value.split('.');
         for (let i = 0, len = ref.length; i < len; i++) {
             const label = ref[i];
             if (!/^[a-z]/.test(label)) {
-                return suffix + 'start with a letter.';
+                return { message: suffix + 'start with a letter.', code: suffixCode + 'is_not_starting_with_a_letter' };
             }
             if (!/^[a-z0-9-]*$/.test(label)) {
-                return suffix + 'have only letters, digits, or dashes.';
+                return { message: suffix + 'have only letters, digits, or dashes.', code: suffixCode + 'should_only_have_letters_digits_or_dashes' };
             }
             if (/--/.test(label)) {
-                return suffix + 'have only one dash in a row.';
+                return { message: suffix + 'have only one dash in a row.', code: suffixCode + 'should_only_have_one_dash_in_a_row' };
             }
             if (!/[a-z0-9]$/.test(label)) {
-                return suffix + 'end with a letter or digit.';
+                return { message: suffix + 'end with a letter or digit.', code: suffixCode + 'should_end_with_letter_or_digit' };
             }
             if (!(label.length >= 3)) {
-                return suffix + 'be longer';
+                return { message: suffix + 'be longer', code: suffixCode + 'is_too_short' };
             }
         }
         return null;
     };
     const reason = fn();
-    return reason ? { status: 'error', message: reason } : { status: 'success' };
+    return reason ? { ...reason, status: 'error' } : { status: 'success' };
 };
