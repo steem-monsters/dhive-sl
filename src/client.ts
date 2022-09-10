@@ -6,7 +6,7 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log } from './utils';
+import { copy, LogLevel, log, TimerType } from './utils';
 import { HiveEngineClient, HiveEngineParameters } from './modules/engine/engine';
 import { BeaconAPI, BeaconParameters } from './modules/beacon';
 import { PrivateKey } from './chain/keys/keys';
@@ -192,7 +192,7 @@ export class Client {
     /**
      * Interval for transactionQueue
      */
-    private transactionQueueInterval: any;
+    private transactionQueueInterval?: TimerType;
 
     public readonly fetch: { hive: ClientFetch; engine: ClientFetch };
 

@@ -314,3 +314,5 @@ export const uniqueArray = <T>(a: any[], key?: string): T[] => {
 
     return [...new Set(a.map((o) => JSON.stringify(o)))].map((s) => JSON.parse(s as any));
 };
+
+export type TimerType = ReturnType<typeof setTimeout>;
