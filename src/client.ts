@@ -15,10 +15,13 @@ import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
 import { OperationAPI } from './modules/operation';
 import { ClientFetch } from './clientFetch';
 
+type Key = string | PrivateKey | string[] | PrivateKey[];
+type TransactionCallback = (data: any, key: Key) => unknown;
+
 interface TxInQueue {
     data: any;
-    key: string | PrivateKey | string[] | PrivateKey[];
-    txCall: any;
+    key: Key;
+    txCall?: TransactionCallback;
 }
 
 /**
@@ -266,7 +269,7 @@ export class Client {
         return new Client(opts);
     }
 
-    async queueTransaction(data: any, key: string | string[] | PrivateKey | PrivateKey[], txCall: any) {
+    async queueTransaction(data: any, key: Key, txCall?: TransactionCallback) {
         this.transactionQueue.push({ data, key, txCall });
     }
 
@@ -276,7 +279,9 @@ export class Client {
         const item = this.transactionQueue.shift();
         if (item) {
             log(`Processing queue item ${item.data.id}`, LogLevel.Info);
-            item.txCall(item.data, item.key);
+            if (item.txCall) {
+                item.txCall(item.data, item.key);
+            }
         }
     }
 }
