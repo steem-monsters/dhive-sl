@@ -316,3 +316,32 @@ export const uniqueArray = <T>(a: any[], key?: string): T[] => {
 };
 
 export type TimerType = ReturnType<typeof setTimeout>;
+
+export type WrappedPseudoInterval = {
+    readonly interval?: TimerType;
+};
+
+/**
+ * Create a WrappedPseudoInterval that guarantees at least `ms` milliseconds between the end of one `callback` invocation and the beginning of another.
+ * @param callback - function that will be repeatedly called with `args`.
+ * @param ms - interval delay in milliseconds.
+ * @param args - positional rest arguments for the callback.
+ */
+export function setSingleEntryInterval<TArgs extends any[]>(callback: (...args: TArgs) => void, ms?: number, ...args: TArgs): WrappedPseudoInterval {
+    let interval: TimerType | undefined;
+    const retval: WrappedPseudoInterval = {
+        get interval() {
+            return interval;
+        },
+    };
+    const setter = (v: TimerType) => (interval = v);
+    (function loop() {
+        setter(
+            setTimeout(() => {
+                callback(...args);
+                loop();
+            }, ms),
+        );
+    })();
+    return retval;
+}
