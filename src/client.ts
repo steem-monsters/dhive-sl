@@ -6,7 +6,7 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log, TimerType } from './utils';
+import { copy, LogLevel, log, WrappedPseudoInterval, setSingleEntryInterval } from './utils';
 import { HiveEngineClient, HiveEngineParameters } from './modules/engine/engine';
 import { BeaconAPI, BeaconParameters } from './modules/beacon';
 import { PrivateKey } from './chain/keys/keys';
@@ -190,11 +190,13 @@ export class Client {
     private transactionQueue: TxInQueue[];
 
     /**
-     * Interval for transactionQueue
+     * Recursive setTimeout for transactionQueue
      */
-    private transactionQueueInterval?: TimerType;
+    private transactionQueueInterval?: WrappedPseudoInterval;
 
     public readonly fetch: { hive: ClientFetch; engine: ClientFetch };
+
+    private static readonly QueueTimout = 1000;
 
     /**
      * @param options Client options.
@@ -224,10 +226,11 @@ export class Client {
         this.engine = new HiveEngineClient(this, options.engine);
         this.memo = new Memo(options.memoPrefix, this.addressPrefix);
 
-        if (!options.skipTransactionQueue)
-            this.transactionQueueInterval = setInterval(() => {
+        if (!options.skipTransactionQueue) {
+            this.transactionQueueInterval = setSingleEntryInterval(() => {
                 this.processTransactionQueue();
-            }, 1000);
+            }, Client.QueueTimout);
+        }
 
         if (this.beacon.loadOnInitialize) {
             setTimeout(async () => {
@@ -237,7 +240,7 @@ export class Client {
     }
 
     public destroy() {
-        clearInterval(this.transactionQueueInterval);
+        clearInterval(this.transactionQueueInterval?.interval);
         this.fetch.hive.clearInterval();
         this.fetch.engine.clearInterval();
     }
