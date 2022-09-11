@@ -65,7 +65,6 @@ export default [
     //                 bigi: 'bigi',
     //                 jsbi: 'jsbi',
     //                 fs: 'fs',
-    //                 'splinterlands-hive-engine': 'splinterlandsHiveEngine',
     //                 verror: 'verror',
     //                 'secure-random': 'secureRandom',
     //                 'browserify-aes': 'browserifyAes',

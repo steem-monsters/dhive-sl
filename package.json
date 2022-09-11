@@ -39,7 +39,6 @@
         "jsbi": "^4.3.0",
         "secp256k1": "^4.0.3",
         "secure-random": "^1.1.2",
-        "splinterlands-hive-engine": "^1.0.1",
         "verror": "^1.10.1",
         "whatwg-fetch": "^3.6.2"
     },

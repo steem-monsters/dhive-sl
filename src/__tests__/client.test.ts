@@ -17,7 +17,7 @@ describe('TEST_CLIENT', function () {
         const result = await bclient.call('condenser_api', 'get_accounts', [['initminer']]);
         expect(result.length).toEqual(1);
         expect(result[0].name).toEqual('initminer');
-        expect(bclient.nodes.length).toBeGreaterThan(2);
+        expect(bclient.fetch.hive.nodes.length).toBeGreaterThan(2);
         await timeout(2000);
     });
 
