@@ -13,7 +13,7 @@ import { PrivateKey } from './chain/keys/keys';
 import { Memo } from './chain/memo';
 import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
 import { OperationAPI } from './modules/operation';
-import { ClientFetch } from './fetch';
+import { ClientFetch } from './clientFetch';
 
 interface TxInQueue {
     data: any;
@@ -206,7 +206,7 @@ export class Client {
 
         this.beacon = new BeaconAPI(options.beacon);
         this.fetch = {
-            hive: new ClientFetch('hive', this.beacon, options.nodes, options.timeout, options.nodeErrorLimit),
+            hive: new ClientFetch('hive', this.beacon, options.nodes, options.timeout, options.nodeErrorLimit, this.options.agent),
             engine: new ClientFetch('hiveengine', this.beacon, options.engine?.nodes || HiveEngineClient.defaultNodes, options.timeout, options.nodeErrorLimit),
         };
 

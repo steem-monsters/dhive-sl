@@ -98,9 +98,12 @@ export class ClientFetch {
      */
     private beaconInterval: any;
 
-    constructor(private fetchType: 'hive' | 'hiveengine', private beacon: BeaconAPI, nodes?: string | string[], timeout = 1000, nodeErrorLimit = 10) {
+    private agent?: any;
+
+    constructor(private fetchType: 'hive' | 'hiveengine', private beacon: BeaconAPI, nodes?: string | string[], timeout = 1000, nodeErrorLimit = 10, agent?: any) {
         this.timeout = timeout;
         this.nodeErrorLimit = nodeErrorLimit;
+        this.agent = agent;
         this._nodes = [];
         if (nodes) {
             nodes = !Array.isArray(nodes) ? [nodes] : nodes;
@@ -266,9 +269,9 @@ export class ClientFetch {
             };
         }
 
-        // if (this.options.agent) {
-        //     opts.agent = this.options.agent;
-        // }
+        if (this.agent) {
+            opts.agent = this.agent;
+        }
 
         // Only for non-broadcast: return fast or abort
         if (!method.includes('network_broadcast_api') && !method.includes('broadcast_transaction') && this.fetchType === 'hive') {
