@@ -14,6 +14,7 @@ import { Memo } from './chain/memo';
 import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
 import { OperationAPI } from './modules/operation';
 import { ClientFetch } from './clientFetch';
+import { UsageParameters, UsageTracker } from './modules/usage';
 
 type Key = string | PrivateKey | string[] | PrivateKey[];
 type TransactionCallback = (data: any, key: Key) => unknown;
@@ -88,6 +89,12 @@ export interface ClientOptions {
      * Default: false
      */
     skipTransactionQueue?: boolean;
+
+    /**
+     * Configure transaction queue throttling per account
+     * Default: undefined (and disabled)
+     */
+    usageLimits?: UsageParameters;
 
     /**
      * Memo prefix
@@ -194,6 +201,8 @@ export class Client {
      */
     private transactionQueueInterval?: WrappedPseudoInterval;
 
+    private usageTracker?: UsageTracker;
+
     public readonly fetch: { hive: ClientFetch; engine: ClientFetch };
 
     private static readonly QueueTimout = 1000;
@@ -226,6 +235,11 @@ export class Client {
         this.engine = new HiveEngineClient(this, options.engine);
         this.memo = new Memo(options.memoPrefix, this.addressPrefix);
 
+        if (options.usageLimits) {
+            const { limit, ms } = options.usageLimits;
+            this.usageTracker = new UsageTracker(limit, ms);
+        }
+
         if (!options.skipTransactionQueue) {
             this.transactionQueueInterval = setSingleEntryInterval(() => {
                 this.processTransactionQueue();
@@ -240,6 +254,7 @@ export class Client {
     }
 
     public destroy() {
+        this.usageTracker?.stop();
         clearInterval(this.transactionQueueInterval?.interval);
         this.fetch.hive.clearInterval();
         this.fetch.engine.clearInterval();
@@ -276,14 +291,30 @@ export class Client {
         this.transactionQueue.push({ data, key, txCall });
     }
 
-    async processTransactionQueue() {
-        if (this.transactionQueue.length <= 0) return;
+    private peekTransactionAccount() {
+        if (this.transactionQueue.length === 0) {
+            return;
+        }
+        const peekAccount: string =
+            this.transactionQueue[0].data.required_auths.length > 0 ? this.transactionQueue[0].data.required_auths[0] : this.transactionQueue[0].data.required_posting_auths[0];
+        return peekAccount;
+    }
 
-        const item = this.transactionQueue.shift();
-        if (item) {
-            log(`Processing queue item ${item.data.id}`, LogLevel.Info);
-            if (item.txCall) {
-                item.txCall(item.data, item.key);
+    private processTransactionQueue() {
+        while (true) {
+            const peekAccount = this.peekTransactionAccount();
+            if (peekAccount === undefined) return;
+
+            if (this.usageTracker?.throttle(peekAccount)) {
+                return;
+            }
+
+            const item = this.transactionQueue.shift();
+            if (item) {
+                log(`Processing queue item ${item.data.id}`, LogLevel.Info);
+                if (item.txCall) {
+                    item.txCall(item.data, item.key);
+                }
             }
         }
     }
