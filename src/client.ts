@@ -269,7 +269,7 @@ export class Client {
         return new Client(opts);
     }
 
-    async queueTransaction(data: any, key: Key, txCall?: TransactionCallback) {
+    queueTransaction(data: any, key: Key, txCall?: TransactionCallback) {
         this.transactionQueue.push({ data, key, txCall });
     }
 
