@@ -46,13 +46,6 @@ interface RPCResponse {
     result?: any;
 }
 
-// interface PendingRequest {
-//     request: RPCRequest;
-//     timer: NodeJS.Timer | undefined;
-//     resolve: (response: any) => void;
-//     reject: (error: Error) => void;
-// }
-
 interface RpcNode extends Partial<BeaconNode> {
     type: 'hive' | 'hiveengine';
     name: string;
@@ -231,7 +224,7 @@ export class ClientFetch {
             }
         }
 
-        assert(this.nodes.filter((node) => !node.disabled).length > 0, 'options.nodes is empty. Either set nodes manually or run client.loadNodes()');
+        assert(this.nodes.filter((node) => !node.disabled).length > 0, 'nodes is empty. Either set nodes manually or run client.loadNodes()');
 
         const request: RPCCall =
             this.fetchType === 'hive'
@@ -274,8 +267,14 @@ export class ClientFetch {
         }
 
         // Only for non-broadcast: return fast or abort
-        if (!method.includes('network_broadcast_api') && !method.includes('broadcast_transaction') && this.fetchType === 'hive') {
-            opts.timeout = this.timeout;
+        if (this.fetchType === 'hive') {
+            if (!method.includes('network_broadcast_api') && !method.includes('broadcast_transaction')) {
+                opts.timeout = this.timeout;
+            }
+        } else if (this.fetchType === 'hiveengine') {
+            if (method === 'getContract' || method === 'find' || method === 'findOne') {
+                opts.timeout = this.timeout;
+            }
         }
 
         const { response }: { response: RPCResponse } = await this.retryingFetch(opts, method, params);
