@@ -5,7 +5,15 @@ export * from './modules/beacon';
 export * from './modules/blockchain';
 export * from './modules/broadcast';
 export * from './modules/database';
-export * from './modules/engine';
+
+export * from './modules/engine/engine';
+export * from './modules/engine/contracts';
+export * from './modules/engine/blockchain';
+export * from './modules/engine/contracts/tokens';
+export * from './modules/engine/contracts/distribution';
+export * from './modules/engine/contracts/marketpools';
+export * from './modules/engine/contracts/market';
+
 export * from './modules/hivemind';
 export * from './modules/key';
 export * from './modules/operation';

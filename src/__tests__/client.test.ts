@@ -2,6 +2,7 @@ import { VError } from 'verror';
 import { Client } from '..';
 import { timeout } from '../utils';
 import { TEST_CLIENT } from './common';
+import { HiveEngineClient } from '../modules/engine/engine';
 
 describe('TEST_CLIENT', function () {
     // this.slow(200);
@@ -17,7 +18,21 @@ describe('TEST_CLIENT', function () {
         const result = await bclient.call('condenser_api', 'get_accounts', [['initminer']]);
         expect(result.length).toEqual(1);
         expect(result[0].name).toEqual('initminer');
-        expect(bclient.nodes.length).toBeGreaterThan(2);
+        expect(bclient.fetch.hive.nodes.length).toBeGreaterThan(2);
+        await timeout(2000);
+    });
+
+    it('should handle hive-engine failover', async () => {
+        const bclient = new Client({
+            engine: { nodes: [`woopswrong${HiveEngineClient.defaultNodes[0]}`].concat([...HiveEngineClient.defaultNodes]) },
+            timeout: 1000,
+            nodeErrorLimit: 1,
+        });
+        await bclient.loadNodes();
+
+        const result = await bclient.engine.blockchain.getLatestBlock();
+        expect(result?._id).not.toBe(null);
+        expect(bclient.fetch.engine.nodes.length).toBeGreaterThan(2);
         await timeout(2000);
     });
 
