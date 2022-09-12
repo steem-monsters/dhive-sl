@@ -34,7 +34,6 @@ export class HiveEngineClient {
     public readonly distribution: HiveEngineDistributionContractsApi;
 
     private options: HiveEngineOptions;
-    private id: number;
     private lastBlock: number;
 
     constructor(private hiveClient: Client, parameters: HiveEngineParameters = {}) {
@@ -48,8 +47,6 @@ export class HiveEngineClient {
             ...parameters,
         };
         this.lastBlock = 0;
-
-        this.id = 1;
 
         // Modules
         this.blockchain = new HiveEngineBlockchainApi(this);
