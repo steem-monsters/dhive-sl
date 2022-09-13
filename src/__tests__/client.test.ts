@@ -58,6 +58,16 @@ describe('TEST_CLIENT', function () {
         }
     });
 
+    it('should correctly queue customJson broadcasts', () => {
+        const nothing = (TEST_CLIENT as any).peekTransactionAccount();
+        expect(nothing).toBeUndefined();
+        // Do not await, since we are not processing transactions right now.
+        TEST_CLIENT.broadcast.customJsonQueue({ id: 'some_random_json1', json: { id: 12 }, account: 'someaccount', role: 'posting' }, 'some-private-key');
+        TEST_CLIENT.broadcast.customJsonQueue({ id: 'some_random_json2', json: { id: 22 }, account: 'otheraccount', role: 'posting' }, 'some-private-key');
+        const account = (TEST_CLIENT as any).peekTransactionAccount();
+        expect(account).toBe('someaccount');
+    });
+
     // requires testnet
     // it('should format rpc errors', async function () {
     //     const tx = { operations: [['witness_update', {}]] };

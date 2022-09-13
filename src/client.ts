@@ -292,11 +292,7 @@ export class Client {
     }
 
     private peekTransactionAccount() {
-        if (this.transactionQueue.length === 0) {
-            return;
-        }
-        const peekAccount: string =
-            this.transactionQueue[0].data.required_auths.length > 0 ? this.transactionQueue[0].data.required_auths[0] : this.transactionQueue[0].data.required_posting_auths[0];
+        const peekAccount: string | undefined = this.transactionQueue?.[0]?.data?.account;
         return peekAccount;
     }
 
