@@ -6,7 +6,7 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log } from './utils';
+import { copy, LogLevel, log, WrappedPseudoInterval, setSingleEntryInterval } from './utils';
 import { HiveEngineClient, HiveEngineParameters } from './modules/engine/engine';
 import { BeaconAPI, BeaconParameters } from './modules/beacon';
 import { PrivateKey } from './chain/keys/keys';
@@ -14,11 +14,15 @@ import { Memo } from './chain/memo';
 import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
 import { OperationAPI } from './modules/operation';
 import { ClientFetch } from './clientFetch';
+import { UsageParameters, UsageTracker } from './modules/usage';
+
+type Key = string | PrivateKey | string[] | PrivateKey[];
+type TransactionCallback = (data: any, key: Key) => unknown;
 
 interface TxInQueue {
     data: any;
-    key: string | PrivateKey | string[] | PrivateKey[];
-    txCall: any;
+    key: Key;
+    txCall?: TransactionCallback;
 }
 
 /**
@@ -85,6 +89,12 @@ export interface ClientOptions {
      * Default: false
      */
     skipTransactionQueue?: boolean;
+
+    /**
+     * Configure transaction queue throttling per account
+     * Default: undefined (and disabled)
+     */
+    usageLimits?: UsageParameters;
 
     /**
      * Memo prefix
@@ -187,11 +197,15 @@ export class Client {
     private transactionQueue: TxInQueue[];
 
     /**
-     * Interval for transactionQueue
+     * Recursive setTimeout for transactionQueue
      */
-    private transactionQueueInterval: any;
+    private transactionQueueInterval?: WrappedPseudoInterval;
+
+    private usageTracker?: UsageTracker;
 
     public readonly fetch: { hive: ClientFetch; engine: ClientFetch };
+
+    private static readonly QueueTimout = 1000;
 
     /**
      * @param options Client options.
@@ -221,10 +235,16 @@ export class Client {
         this.engine = new HiveEngineClient(this, options.engine);
         this.memo = new Memo(options.memoPrefix, this.addressPrefix);
 
-        if (!options.skipTransactionQueue)
-            this.transactionQueueInterval = setInterval(() => {
+        if (options.usageLimits) {
+            const { limit, ms } = options.usageLimits;
+            this.usageTracker = new UsageTracker(limit, ms);
+        }
+
+        if (!options.skipTransactionQueue) {
+            this.transactionQueueInterval = setSingleEntryInterval(() => {
                 this.processTransactionQueue();
-            }, 1000);
+            }, Client.QueueTimout);
+        }
 
         if (this.beacon.loadOnInitialize) {
             setTimeout(async () => {
@@ -234,7 +254,8 @@ export class Client {
     }
 
     public destroy() {
-        clearInterval(this.transactionQueueInterval);
+        this.usageTracker?.stop();
+        clearInterval(this.transactionQueueInterval?.interval);
         this.fetch.hive.clearInterval();
         this.fetch.engine.clearInterval();
     }
@@ -266,17 +287,35 @@ export class Client {
         return new Client(opts);
     }
 
-    async queueTransaction(data: any, key: string | string[] | PrivateKey | PrivateKey[], txCall: any) {
+    queueTransaction(data: any, key: Key, txCall?: TransactionCallback) {
         this.transactionQueue.push({ data, key, txCall });
     }
 
-    async processTransactionQueue() {
-        if (this.transactionQueue.length <= 0) return;
+    private peekTransactionAccount() {
+        if (this.transactionQueue.length === 0) {
+            return;
+        }
+        const peekAccount: string =
+            this.transactionQueue[0].data.required_auths.length > 0 ? this.transactionQueue[0].data.required_auths[0] : this.transactionQueue[0].data.required_posting_auths[0];
+        return peekAccount;
+    }
 
-        const item = this.transactionQueue.shift();
-        if (item) {
-            log(`Processing queue item ${item.data.id}`, LogLevel.Info);
-            item.txCall(item.data, item.key);
+    private processTransactionQueue() {
+        while (true) {
+            const peekAccount = this.peekTransactionAccount();
+            if (peekAccount === undefined) return;
+
+            if (this.usageTracker?.throttle(peekAccount)) {
+                return;
+            }
+
+            const item = this.transactionQueue.shift();
+            if (item) {
+                log(`Processing queue item ${item.data.id}`, LogLevel.Info);
+                if (item.txCall) {
+                    item.txCall(item.data, item.key);
+                }
+            }
         }
     }
 }
