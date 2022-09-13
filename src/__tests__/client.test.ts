@@ -58,6 +58,22 @@ describe('TEST_CLIENT', function () {
         }
     });
 
+    it('should correctly queue customJson broadcasts', () => {
+        const bclient = new Client({
+            engine: { nodes: [`woopswrong${HiveEngineClient.defaultNodes[0]}`].concat([...HiveEngineClient.defaultNodes]) },
+            timeout: 1000,
+            nodeErrorLimit: 1,
+            skipTransactionQueue: true,
+        });
+        const nothing = (bclient as any).peekTransactionAccount();
+        expect(nothing).toBeUndefined();
+        // Do not await, since we are not processing transactions right now.
+        bclient.broadcast.customJsonQueue({ id: 'some_random_json1', json: { id: 12 }, account: 'someaccount', role: 'posting' }, 'some-private-key');
+        bclient.broadcast.customJsonQueue({ id: 'some_random_json2', json: { id: 22 }, account: 'otheraccount', role: 'posting' }, 'some-private-key');
+        const account = (bclient as any).peekTransactionAccount();
+        expect(account).toBe('someaccount');
+    });
+
     // requires testnet
     // it('should format rpc errors', async function () {
     //     const tx = { operations: [['witness_update', {}]] };
