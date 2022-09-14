@@ -1,6 +1,6 @@
 # dhive-sl
 
-Fork of [dhive](https://gitlab.syncad.com/hive/dhive), which was originally created by [Johan Nordberg](https://github.com/jnordberg) in 2017 and maintained since 2021 by the Hive community. `dhive-sl` was forked to merge [hive-interface](https://github.com/steem-monsters/hive-interface) with dhive and customize and improve upon it for the needs of the Splinterlands ecosystem.
+Fork of [dhive](https://gitlab.syncad.com/hive/dhive), which was originally created by [Johan Nordberg](https://github.com/jnordberg) in 2017 and maintained since 2021 by the Hive community. `dhive-sl` was forked to merge [hive-interface](https://github.com/steem-monsters/hive-interface) as well as [sscjs](https://github.com/harpagon210/sscjs) with dhive and customize and improve upon it for the needs of the Splinterlands ecosystem.
 
 ---
 
