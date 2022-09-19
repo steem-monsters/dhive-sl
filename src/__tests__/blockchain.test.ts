@@ -168,4 +168,10 @@ describe('blockchain', function () {
         const ts = new Date(header.timestamp + 'Z').getTime();
         expect(Math.abs(ts / 1000 - now / 1000)).toBeLessThan(120);
     });
+
+    it('Cannot start later than head block', async function () {
+        const headBlock = await TEST_CLIENT.blockchain.getCurrentBlockNum();
+        const blockStream = await TEST_CLIENT.blockchain.getBlockNumbers({ from: headBlock + 1000 });
+        await expect(blockStream.next()).rejects;
+    });
 });
