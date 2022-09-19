@@ -174,4 +174,11 @@ describe('blockchain', function () {
         const blockStream = await TEST_CLIENT.blockchain.getBlockNumbers({ from: headBlock + 1000 });
         await expect(blockStream.next()).rejects;
     });
+
+    it('Reversed from-to should generate nothing', async function () {
+        const blockStream = await TEST_CLIENT.blockchain.getBlockNumbers({ from: 1000, to: 900 });
+        const firstBlock = await blockStream.next();
+        expect(firstBlock.done).toBeTruthy();
+        expect(firstBlock.value).toBeUndefined();
+    });
 });

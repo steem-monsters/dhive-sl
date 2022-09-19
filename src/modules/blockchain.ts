@@ -271,10 +271,10 @@ export class Blockchain {
         let seen = options.from !== undefined ? options.from : current;
         while (true) {
             while (current > seen) {
-                yield seen++;
                 if (options.to !== undefined && seen > options.to) {
                     return;
                 }
+                yield seen++;
             }
             await sleep(interval * 1000);
             current = await this.getCurrentBlockNum(options.mode);
