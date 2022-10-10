@@ -18,7 +18,7 @@ import { SignedTransaction, Transaction, TransactionConfirmation } from '../chai
 import { log } from '../utils';
 import { Client } from '../client';
 import { PrivateKey } from '../chain/keys/keys';
-import { CreateAccountOptions, CustomJsonOptions, UpdateAccountAuthority, UpdateAccountAuthorityThreshold } from './operation';
+import { CreateAccountOptions, CustomJsonOptions, DelegateRCOperation, UpdateAccountAuthorityOperation, UpdateAccountAuthorityThreshold } from './operation';
 
 export class BroadcastAPI {
     /**
@@ -120,7 +120,7 @@ export class BroadcastAPI {
     /**
      * Updates account authority and adds/removes specific account/key as [owner/active/posting] authority or sets memo-key
      */
-    public async updateAccountAuthority(data: UpdateAccountAuthority, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async updateAccountAuthority(data: UpdateAccountAuthorityOperation, key: string | string[] | PrivateKey | PrivateKey[]) {
         const op = await this.client.operation.updateAccountAuthority(data);
         return this.sendOperations([op], key);
     }
@@ -155,6 +155,11 @@ export class BroadcastAPI {
      */
     public async delegateVestingShares(data: DelegateVestingSharesOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
         const op = this.client.operation.delegateVestingShares(data);
+        return this.sendOperations([op], key);
+    }
+
+    public async delegateRC(data: DelegateRCOperation, key: string | string[] | PrivateKey | PrivateKey[]) {
+        const op = this.client.operation.delegateRC(data);
         return this.sendOperations([op], key);
     }
 

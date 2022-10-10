@@ -8,6 +8,7 @@ export const agent = IS_BROWSER ? undefined : new https.Agent({ keepAlive: true 
 export const NUM_TEST_ACCOUNTS = 2;
 export const TEST_NODE = process.env['TEST_NODE'] || 'https://api.hive.blog';
 export const TEST_CLIENT = new Client({ nodes: [TEST_NODE], agent });
+export const MIRROR_CLIENT = Client.testnet();
 
 let testAccounts;
 

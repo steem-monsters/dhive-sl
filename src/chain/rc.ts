@@ -58,10 +58,18 @@ export interface RCAccount {
     };
     max_rc_creation_adjustment: SMTAsset | string;
     max_rc: Bignum;
+    delegated_rc: Bignum;
+    received_delegated_rc: Bignum;
 }
 
 export interface Manabar {
     current_mana: number;
     max_mana: number;
     percentage: number;
+}
+
+export interface RCDelegation {
+    from: string;
+    to: string;
+    delegated_rc: number;
 }

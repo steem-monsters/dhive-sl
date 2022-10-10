@@ -6,7 +6,7 @@
 
 import { Account } from '../chain/account';
 import { getVests } from '../chain/misc';
-import { Manabar, RCAccount, RCParams, RCPool } from '../chain/rc';
+import { Manabar, RCAccount, RCDelegation, RCParams, RCPool } from '../chain/rc';
 import { Client } from '../client';
 
 export class RCAPI {
@@ -23,37 +23,56 @@ export class RCAPI {
      * Returns RC data for array of usernames
      */
     public async findRCAccounts(usernames: string[]): Promise<RCAccount[]> {
-        return (await this.call('find_rc_accounts', { accounts: usernames })).rc_accounts;
+        const result = await this.call('find_rc_accounts', { accounts: usernames });
+        return result?.rc_accounts ?? [];
+    }
+
+    /**
+     * Returns RC data for array of usernames
+     */
+    public async listRCAccounts(start: number, limit: number): Promise<RCAccount[]> {
+        const result = await this.call('list_rc_accounts', { start, limit });
+        return result?.rc_accounts ?? [];
+    }
+
+    /**
+     * Returns all RC delegations from a given account and optionally also to a specific account
+     */
+    public async findDirectDelegations(from: string, to?: string, limit = 100): Promise<RCDelegation[]> {
+        const result = await this.call('list_rc_direct_delegations', { start: [from, to], limit });
+        return result?.rc_direct_delegations || [];
     }
 
     /**
      * Returns the global resource params
      */
     public async getResourceParams(): Promise<RCParams> {
-        return (await this.call('get_resource_params', {})).resource_params;
+        const result = await this.call('get_resource_params', {});
+        return result?.resource_params ?? {};
     }
 
     /**
      * Returns the global resource pool
      */
     public async getResourcePool(): Promise<RCPool> {
-        return (await this.call('get_resource_pool', {})).resource_pool;
+        const result = await this.call('get_resource_pool', {});
+        return result?.resource_pool ?? {};
     }
 
     /**
      * Makes a API call and returns the RC mana-data for a specified username
      */
     public async getRCMana(username: string): Promise<Manabar> {
-        const rc_account: RCAccount = (await this.findRCAccounts([username]))[0];
-        return this.calculateRCMana(rc_account);
+        const accounts = await this.findRCAccounts([username]);
+        return accounts?.length > 0 ? this.calculateRCMana(accounts[0]) : { current_mana: 0, max_mana: 0, percentage: 0 };
     }
 
     /**
      * Makes a API call and returns the VP mana-data for a specified username
      */
     public async getVPMana(username: string): Promise<Manabar> {
-        const account: Account = (await this.client.call('condenser_api', 'get_accounts', [[username]]))[0];
-        return this.calculateVPMana(account);
+        const account = await this.client.database.getAccount(username, { logErrors: false });
+        return account ? this.calculateVPMana(account) : { current_mana: 0, max_mana: 0, percentage: 0 };
     }
 
     /**

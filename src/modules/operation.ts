@@ -8,6 +8,7 @@ import { Authority, AuthorityType } from '../chain/account';
 import { Asset } from '../chain/asset';
 import { PrivateKey, PublicKey } from '../chain/keys/keys';
 import { KeyRole, KeyRoleActive, KeyRoleOwner, KeyRolePosting } from '../chain/keys/utils';
+import { Bignum } from '../chain/misc';
 import {
     AccountUpdateOperation,
     ChangeRecoveryAccountOperation,
@@ -79,13 +80,19 @@ export interface UpdateAccountAuthorityThreshold {
 export type AccountAuthorityType = 'key' | 'account';
 export type UpdateAccountAuthorityMethod = 'add' | 'remove';
 
-export interface UpdateAccountAuthority {
+export interface UpdateAccountAuthorityOperation {
     method: UpdateAccountAuthorityMethod;
     account: string;
     authority: string;
     authorityType: AccountAuthorityType;
     role: KeyRole;
     weight?: number;
+}
+
+export interface DelegateRCOperation {
+    from: string;
+    to: string | string[];
+    max_rc: Bignum;
 }
 
 export class OperationAPI {
@@ -204,7 +211,7 @@ export class OperationAPI {
     /**
      * Updates account authority and adds/removes specific account/key as [owner/active/posting] authority or sets memo-key
      */
-    public async updateAccountAuthority({ method, account, authority, authorityType, role, weight = 1 }: UpdateAccountAuthority): Promise<AccountUpdateOperation> {
+    public async updateAccountAuthority({ method, account, authority, authorityType, role, weight = 1 }: UpdateAccountAuthorityOperation): Promise<AccountUpdateOperation> {
         const existingAccount = await this.client.database.getAccount(account, { logErrors: false });
         if (!existingAccount?.name) throw new Error('Account does not exists');
 
@@ -249,5 +256,9 @@ export class OperationAPI {
 
     public delegateVestingShares(options: DelegateVestingSharesOperation[1]): DelegateVestingSharesOperation {
         return ['delegate_vesting_shares', options];
+    }
+
+    public delegateRC({ from, to, max_rc }: DelegateRCOperation) {
+        return this.customJson({ id: 'rc', json: ['delegate_rc', { from, delegatees: Array.isArray(to) ? to : [to], max_rc }], account: from, role: 'posting' });
     }
 }
