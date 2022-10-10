@@ -4,7 +4,7 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import { Transaction } from './transaction';
+import { SignedTransactionInBlock } from './transaction';
 
 /**
  * Unsigned block header.
@@ -28,8 +28,11 @@ export interface SignedBlockHeader extends BlockHeader {
  * Full signed block.
  */
 export interface SignedBlock extends SignedBlockHeader {
+    ref_block_num: number;
+    ref_block_prefix: number;
+    expiration: string;
     block_id: string;
     signing_key: string;
     transaction_ids: string[];
-    transactions: Transaction[];
+    transactions: SignedTransactionInBlock[];
 }

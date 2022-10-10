@@ -11,7 +11,7 @@ import { Discussion } from '../chain/comment';
 import { DynamicGlobalProperties } from '../chain/misc';
 import { ChainProperties, VestingDelegation } from '../chain/misc';
 import { AppliedOperation } from '../chain/operation';
-import { SignedTransaction } from '../chain/transaction';
+import { SignedTransaction, SignedTransactionInBlock, Transaction } from '../chain/transaction';
 import { log, LogLevel } from '../utils';
 import { Client } from '../client';
 import { KeyRole } from '../chain/keys/utils';
@@ -165,8 +165,24 @@ export class DatabaseAPI {
     /**
      * Return block *blockNum*.
      */
-    public getBlock(blockNum: number): Promise<SignedBlock> {
-        return this.call('get_block', [blockNum]);
+    public async getBlock(blockNum: number): Promise<SignedBlock> {
+        const block: SignedBlock = await this.call('get_block', [blockNum]);
+        if (block)
+            block.transactions = block.transactions.map(
+                (transaction) =>
+                    new SignedTransactionInBlock({
+                        expiration: transaction.expiration,
+                        extensions: transaction.extensions,
+                        operations: transaction.operations,
+                        ref_block_num: transaction.ref_block_num,
+                        ref_block_prefix: transaction.ref_block_prefix,
+                        transaction_id: transaction.transaction_id,
+                        block_num: transaction.block_num,
+                        signatures: transaction.signatures,
+                        transaction_num: transaction.transaction_num,
+                    }),
+            );
+        return block;
     }
 
     /**
