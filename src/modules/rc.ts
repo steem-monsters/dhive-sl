@@ -20,10 +20,18 @@ export class RCAPI {
     }
 
     /**
-     * Returns RC data for array of usernames
+     * Returns RC data for array of usernames or a single string
      */
-    public async findRCAccounts(usernames: string[]): Promise<RCAccount[]> {
-        const result = await this.call('find_rc_accounts', { accounts: usernames });
+    public async getRCAccount(username: string): Promise<RCAccount> {
+        const result = await this.getRCAccounts([username]);
+        return result[0];
+    }
+
+    /**
+     * Returns RC data for array of usernames or a single string
+     */
+    public async getRCAccounts(usernames: string[]): Promise<RCAccount[]> {
+        const result: { rc_accounts: RCAccount[] } = await this.call('find_rc_accounts', { accounts: Array.isArray(usernames) ? usernames : [usernames] });
         return result?.rc_accounts ?? [];
     }
 
@@ -38,7 +46,7 @@ export class RCAPI {
     /**
      * Returns all RC delegations from a given account and optionally also to a specific account
      */
-    public async findDirectDelegations(from: string, to?: string, limit = 100): Promise<RCDelegation[]> {
+    public async getDirectDelegations(from: string, to?: string, limit = 100): Promise<RCDelegation[]> {
         const result = await this.call('list_rc_direct_delegations', { start: [from, to], limit });
         return result?.rc_direct_delegations || [];
     }
@@ -63,8 +71,15 @@ export class RCAPI {
      * Makes a API call and returns the RC mana-data for a specified username
      */
     public async getRCMana(username: string): Promise<Manabar> {
-        const accounts = await this.findRCAccounts([username]);
+        const accounts = await this.getRCAccounts([username]);
         return accounts?.length > 0 ? this.calculateRCMana(accounts[0]) : { current_mana: 0, max_mana: 0, percentage: 0 };
+    }
+
+    /**
+     * Calculates roughly the amount of RC you'd get from Hivepower
+     */
+    public calculateRoughRCFromHP(hp: number) {
+        return hp * 2 * 1000000000;
     }
 
     /**

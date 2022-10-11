@@ -6,9 +6,14 @@ describe('rc_api', function () {
     // this.slow(500);
     jest.setTimeout(20 * 1000);
 
-    it('should get RC', async () => {
+    it('should get RC Mana', async () => {
         const account = await TEST_CLIENT.rc.getRCMana('therealwolf');
         expect(account?.current_mana > 0).toBeTruthy();
+    });
+
+    it('should get RC Account', async () => {
+        const account = await TEST_CLIENT.rc.getRCAccount('therealwolf');
+        expect(account.account === 'therealwolf').toBeTruthy();
     });
 
     it('calculateVPMana', () => {
