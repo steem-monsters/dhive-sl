@@ -57,9 +57,20 @@ export interface RCAccount {
         last_update_time: number;
     };
     max_rc_creation_adjustment: SMTAsset | string;
-    max_rc: Bignum;
-    delegated_rc: Bignum;
-    received_delegated_rc: Bignum;
+    max_rc: Bignum | number;
+    delegated_rc: Bignum | number;
+    received_delegated_rc: Bignum | number;
+}
+
+export interface RCAccountExtended {
+    account: RCAccount['account'];
+    max_rc_creation_adjustment: RCAccount['max_rc_creation_adjustment'];
+    max_rc: RCAccount['max_rc'];
+    current_rc: Bignum | number;
+    percentage_rc: number;
+    delegated_rc: RCAccount['delegated_rc'];
+    received_delegated_rc: RCAccount['received_delegated_rc'];
+    last_update_time: number;
 }
 
 export interface Manabar {
