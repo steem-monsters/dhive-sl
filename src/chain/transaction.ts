@@ -26,6 +26,12 @@ interface SignedTransactionParameters extends TransactionParameters {
     signatures: string[];
 }
 
+interface SignedBlockTransactionParameters extends SignedTransactionParameters {
+    transaction_id: string;
+    block_num: number;
+    transaction_num: number;
+}
+
 export interface TransactionConfirmation {
     id: string; // transaction_id_type
     block_num: number; // int32_t
@@ -128,10 +134,23 @@ export class Transaction {
 }
 
 export class SignedTransaction extends Transaction {
-    signatures: string[];
+    public signatures: SignedTransactionParameters['signatures'];
 
     constructor({ ref_block_num, ref_block_prefix, expiration, operations, extensions, signatures }: SignedTransactionParameters) {
         super({ ref_block_num, ref_block_prefix, expiration, operations, extensions });
         this.signatures = signatures;
+    }
+}
+
+export class SignedTransactionInBlock extends SignedTransaction {
+    public block_num: SignedBlockTransactionParameters['block_num'];
+    public transaction_id: SignedBlockTransactionParameters['transaction_id'];
+    public transaction_num: SignedBlockTransactionParameters['transaction_num'];
+
+    constructor({ ref_block_num, ref_block_prefix, expiration, operations, extensions, signatures, block_num, transaction_id, transaction_num }: SignedBlockTransactionParameters) {
+        super({ ref_block_num, ref_block_prefix, expiration, operations, extensions, signatures });
+        this.block_num = block_num;
+        this.transaction_id = transaction_id;
+        this.transaction_num = transaction_num;
     }
 }

@@ -274,17 +274,14 @@ export class Client {
     /**
      * Create a new client instance configured for the testnet.
      */
-    public static testnet(options?: ClientOptions) {
-        let opts: ClientOptions = {};
-        if (options) {
-            opts = copy(options);
-            opts.agent = options.agent;
-        }
-
-        opts.addressPrefix = 'TST';
-        opts.chainId = '4200000000000000000000000000000000000000000000000000000000000000';
-        opts.nodes = ['https://api.fake.openhive.network'];
-        return new Client(opts);
+    public static testnet(
+        options: ClientOptions = {
+            chainId: '4200000000000000000000000000000000000000000000000000000000000000',
+            addressPrefix: 'STM',
+            nodes: ['https://api.fake.openhive.network'],
+        },
+    ) {
+        return new Client({ ...options, agent: options.agent });
     }
 
     queueTransaction(data: any, key: Key, txCall?: TransactionCallback) {

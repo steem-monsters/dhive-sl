@@ -335,7 +335,7 @@ export interface CustomBinaryOperation extends Operation {
     };
 }
 
-export interface CustomJsonOperation extends Operation {
+export interface CustomJsonOperation<ID = string, JSON = string> extends Operation {
     0: 'custom_json'; // 18
     1: {
         required_auths: string[]; // flat_set< account_name_type >
@@ -343,11 +343,11 @@ export interface CustomJsonOperation extends Operation {
         /**
          * ID string, must be less than 32 characters long.
          */
-        id: string;
+        id: ID;
         /**
          * JSON encoded string, must be valid JSON.
          */
-        json: string;
+        json: JSON;
     };
 }
 

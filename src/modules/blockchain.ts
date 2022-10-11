@@ -238,7 +238,7 @@ export class Blockchain {
     async loadState() {
         // Check if state has been saved to disk, in which case load it
         if (fs.existsSync(this.streamOptions.stateFile)) {
-            const state = JSON.parse(fs.readFileSync(this.streamOptions.stateFile).toString());
+            const state = JSON.parse(fs.readFileSync(this.streamOptions.stateFile).toString() || '{}');
             log('Restored saved state: ' + JSON.stringify(state));
             return state;
         }
@@ -246,7 +246,7 @@ export class Blockchain {
 
     saveState(state) {
         // Save the last block read to disk
-        fs.writeFile(this.streamOptions.stateFile, JSON.stringify(state), function (e: any) {
+        fs.writeFile(this.streamOptions.stateFile, JSON.stringify(state || {}), function (e: any) {
             if (e) log(e);
         });
     }

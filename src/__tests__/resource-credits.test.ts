@@ -1,11 +1,17 @@
 import assert from 'assert';
+import { RCAccount } from '../chain/rc';
 import { TEST_CLIENT } from './common';
 
 describe('rc_api', function () {
     // this.slow(500);
     jest.setTimeout(20 * 1000);
 
-    it('calculateVPMana', function () {
+    it('should get RC', async () => {
+        const account = await TEST_CLIENT.rc.getRCMana('therealwolf');
+        expect(account?.current_mana > 0).toBeTruthy();
+    });
+
+    it('calculateVPMana', () => {
         const account: any = {
             name: 'therealwolf',
             voting_manabar: {
@@ -27,8 +33,8 @@ describe('rc_api', function () {
         assert.equal(bar.percentage, 10000);
     });
 
-    it('calculateRCMana', function () {
-        const rc_account = {
+    it('calculateRCMana', () => {
+        const rc_account: RCAccount = {
             account: 'therealwolf',
             rc_manabar: {
                 current_mana: '100000',
@@ -40,6 +46,8 @@ describe('rc_api', function () {
                 nai: '@@000000021',
             },
             max_rc: '1000000',
+            delegated_rc: '1000',
+            received_delegated_rc: '1000',
         };
 
         let bar = TEST_CLIENT.rc.calculateRCMana(rc_account);
@@ -48,4 +56,9 @@ describe('rc_api', function () {
         bar = TEST_CLIENT.rc.calculateRCMana(rc_account);
         assert(bar.percentage >= 1000 && bar.percentage < 1100);
     });
+
+    // it('getRCDelegations', async () => {
+    //     const result = await TEST_CLIENT.rc.findDirectDelegations('therealwolf');
+    //     expect(result.length).toBeGreaterThan(0);
+    // });
 });
