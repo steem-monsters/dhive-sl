@@ -117,14 +117,14 @@ export class OperationAPI {
         return ['transfer', data];
     }
 
-    public customJson({ id, account, json, role = 'posting' }: CustomJsonOptions): CustomJsonOperation {
-        const opData: CustomJsonOperation[1] = {
+    public customJson<ID = string, JSON = string>({ id, account, json, role = 'posting' }: CustomJsonOptions): CustomJsonOperation<ID, JSON> {
+        const opData = {
             id,
             json: JSON.stringify(json),
             required_auths: role === 'active' ? [account] : [],
             required_posting_auths: role == 'posting' ? [account] : [],
         };
-        return ['custom_json', opData];
+        return ['custom_json', opData] as any;
     }
 
     public async createTestAccount(options: CreateAccountOptions): Promise<Operation[]> {

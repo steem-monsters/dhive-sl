@@ -345,3 +345,6 @@ export function setSingleEntryInterval<TArgs extends any[]>(callback: (...args: 
     })();
     return retval;
 }
+
+export const sortAsc = (arr: any[], key?: string) => [...arr].sort((a, b) => (key ? a[key] - b[key] : a - b));
+export const sortDesc = (arr: any[], key?: string) => [...arr].sort((a, b) => (key ? b[key] - a[key] : b - a));
