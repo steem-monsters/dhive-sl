@@ -7,8 +7,8 @@ describe('rc_api', function () {
     jest.setTimeout(20 * 1000);
 
     it('should get RC Mana', async () => {
-        const account = await TEST_CLIENT.rc.getRCMana('therealwolf');
-        expect(account?.current_mana > 0).toBeTruthy();
+        const mana = await TEST_CLIENT.rc.getRCMana('therealwolf');
+        expect(mana?.current_mana > 0).toBeTruthy();
     });
 
     it('should get RC Account', async () => {
