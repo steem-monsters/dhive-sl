@@ -11,21 +11,16 @@ import { Discussion } from '../chain/comment';
 import { DynamicGlobalProperties } from '../chain/misc';
 import { ChainProperties, VestingDelegation } from '../chain/misc';
 import { AppliedOperation } from '../chain/operation';
-import { SignedTransaction, SignedTransactionInBlock, Transaction } from '../chain/transaction';
+import { SignedTransaction, SignedTransactionInBlock } from '../chain/transaction';
 import { log, LogLevel } from '../utils';
 import { Client } from '../client';
 import { KeyRole } from '../chain/keys/utils';
 import { PublicKey } from '../chain/keys/keys';
 
-export interface TxSignPropertiesBase {
-    ref_block_num: DynamicGlobalProperties['last_irreversible_block_num'] | DynamicGlobalProperties['head_block_number'];
-    ref_block_prefix: string;
-}
-
 export interface TxSignProperties {
-    latest: TxSignPropertiesBase;
-    irreversible: TxSignPropertiesBase;
-    time: Date;
+    head_block_number: DynamicGlobalProperties['head_block_number'];
+    head_block_id: string;
+    time: number;
 }
 
 interface GetAccountOption {
@@ -99,22 +94,14 @@ export class DatabaseAPI {
     /**
      * Loads & caches properties to sign transactions with
      */
-    public async getTxSignProperties() {
+    public async getTxSignProperties(force?: boolean) {
         // Realods txSignProperties if it's empty or older than 60 seconds
-        if (!this.txSignProperties || this.txSignProperties.time.getTime() < Date.now() - 60 * 1000) {
+        if (force || !this.txSignProperties || this.txSignProperties.time < Date.now() - 60 * 1000) {
             const result = await this.getDynamicGlobalProperties();
-            const irreversibleBlock = await this.getBlock(result.last_irreversible_block_num);
-
             this.txSignProperties = {
-                latest: {
-                    ref_block_num: result.head_block_number,
-                    ref_block_prefix: result.head_block_id,
-                },
-                irreversible: {
-                    ref_block_num: result.last_irreversible_block_num,
-                    ref_block_prefix: irreversibleBlock.block_id,
-                },
-                time: new Date(result.time + 'Z'),
+                head_block_number: result.head_block_number,
+                head_block_id: result.head_block_id,
+                time: new Date(result.time + 'Z').getTime(),
             };
         }
 

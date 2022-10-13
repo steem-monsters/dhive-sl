@@ -12,7 +12,6 @@ import { PrivateKey, Signature } from './keys/keys';
 import { hash } from '../crypto';
 import { DEFAULT_CHAIN_ID } from '../constants';
 import { TxSignProperties } from '../modules/database';
-import { BlockchainMode } from '../modules/blockchain';
 
 interface TransactionParameters {
     ref_block_num: number;
@@ -40,6 +39,12 @@ export interface TransactionConfirmation {
 }
 
 export class Transaction {
+    /**
+     * How many milliseconds in the future to set the expiry time to when
+     * broadcasting a transaction, defaults to 10 minutes.
+     */
+    public static expireTime = 600 * 1000;
+
     public ref_block_num: TransactionParameters['ref_block_num'];
     public ref_block_prefix: TransactionParameters['ref_block_prefix'];
     public expiration: TransactionParameters['expiration'];
@@ -58,14 +63,16 @@ export class Transaction {
      *
      * @param txSignProperties txSignProperties via client.database.getTxSignProperties()
      * @param ops operations
-     * @param mode 'latest' | 'irreversible'
      */
-    public static from(txSignProperties: TxSignProperties, ops: Operation[], mode: BlockchainMode) {
-        const props = txSignProperties[mode];
+    public static from(txSignProperties: TxSignProperties, ops: Operation[], expireTime = Transaction.expireTime) {
+        const ref_block_num = txSignProperties.head_block_number & 0xffff;
+        const ref_block_prefix = Buffer.from(txSignProperties.head_block_id, 'hex').readUInt32LE(4);
+        const expiration = new Date(txSignProperties.time + expireTime).toISOString().slice(0, -5);
+
         return new Transaction({
-            ref_block_num: props.ref_block_num & 0xffff,
-            ref_block_prefix: Buffer.from(props.ref_block_prefix, 'hex').readUInt32LE(4),
-            expiration: new Date(txSignProperties.time.getTime() + 600 * 1000).toISOString().split('.')[0],
+            ref_block_num,
+            ref_block_prefix,
+            expiration,
             extensions: [],
             operations: ops,
         });

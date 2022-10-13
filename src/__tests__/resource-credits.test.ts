@@ -62,8 +62,8 @@ describe('rc_api', function () {
         assert(bar.percentage >= 1000 && bar.percentage < 1100);
     });
 
-    // it('getRCDelegations', async () => {
-    //     const result = await TEST_CLIENT.rc.findDirectDelegations('therealwolf');
-    //     expect(result.length).toBeGreaterThan(0);
-    // });
+    it('getRCDelegations', async () => {
+        const result = await TEST_CLIENT.rc.getDelegations('therealwolf');
+        expect(result.length).toBeGreaterThan(0);
+    });
 });

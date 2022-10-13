@@ -21,12 +21,6 @@ import { PrivateKey } from '../chain/keys/keys';
 import { CreateAccountOptions, CustomJsonOptions, DelegateRCOperation, UpdateAccountAuthorityOperation, UpdateAccountAuthorityThreshold } from './operation';
 
 export class BroadcastAPI {
-    /**
-     * How many milliseconds in the future to set the expiry time to when
-     * broadcasting a transaction, defaults to 10 minutes.
-     */
-    public expireTime = 600 * 1000;
-
     constructor(readonly client: Client) {}
 
     /**
@@ -191,7 +185,7 @@ export class BroadcastAPI {
     public async createTransaction(op: Operation | Operation[]) {
         const ops = (typeof op[0] === 'string' ? [op] : op) as Operation[];
         const txSignProperties = await this.client.database.getTxSignProperties();
-        return Transaction.from(txSignProperties, ops, this.client.blockchainMode);
+        return Transaction.from(txSignProperties, ops);
     }
 
     /**
