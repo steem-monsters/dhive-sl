@@ -4,7 +4,7 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import { SMTAsset } from './asset';
+import { RCAsset, SMTAsset } from './asset';
 import { Bignum } from './misc';
 
 export interface RCParams {
@@ -65,11 +65,11 @@ export interface RCAccount {
 export interface RCAccountExtended {
     account: RCAccount['account'];
     max_rc_creation_adjustment: RCAccount['max_rc_creation_adjustment'];
-    max_rc: RCAccount['max_rc'];
-    current_rc: Bignum | number;
-    percentage_rc: number;
-    delegated_rc: RCAccount['delegated_rc'];
-    received_delegated_rc: RCAccount['received_delegated_rc'];
+    max: RCObject;
+    current: RCObject;
+    percentage: number;
+    delegated: RCObject;
+    received: RCObject;
     last_update_time: number;
 }
 
@@ -82,5 +82,10 @@ export interface Manabar {
 export interface RCDelegation {
     from: string;
     to: string;
-    delegated_rc: number;
+    delegation: RCObject;
+}
+
+export interface RCObject {
+    rc: RCAsset;
+    rcs: RCAsset;
 }

@@ -5,10 +5,9 @@
 
 import assert from 'assert';
 import { Authority, AuthorityType } from '../chain/account';
-import { Asset } from '../chain/asset';
+import { Asset, RCAsset } from '../chain/asset';
 import { PrivateKey, PublicKey } from '../chain/keys/keys';
 import { KeyRole, KeyRoleActive, KeyRoleOwner, KeyRolePosting } from '../chain/keys/utils';
-import { Bignum } from '../chain/misc';
 import {
     AccountUpdateOperation,
     ChangeRecoveryAccountOperation,
@@ -92,7 +91,7 @@ export interface UpdateAccountAuthorityOperation {
 export interface DelegateRCOperation {
     from: string;
     to: string | string[];
-    max_rc: Bignum;
+    max_rc: string | RCAsset;
 }
 
 export class OperationAPI {
@@ -258,7 +257,16 @@ export class OperationAPI {
         return ['delegate_vesting_shares', options];
     }
 
+    /**
+     * Example
+     * max_rc: '5 RC' or '5000000000 RCS' or RCAsset.from(5, 'RC')
+     */
     public delegateRC({ from, to, max_rc }: DelegateRCOperation) {
-        return this.customJson({ id: 'rc', json: ['delegate_rc', { from, delegatees: Array.isArray(to) ? to : [to], max_rc }], account: from, role: 'posting' });
+        const data: { from: string; delegatees: string[]; max_rc: number } = {
+            from,
+            delegatees: Array.isArray(to) ? to : [to],
+            max_rc: typeof max_rc === 'string' ? RCAsset.from(max_rc).toSatoshi().amount : max_rc.symbol === 'RCS' ? max_rc.amount : max_rc.toSatoshi().amount,
+        };
+        return this.customJson<'rc', string>({ id: 'rc', json: ['delegate_rc', data], account: from, role: 'posting' });
     }
 }

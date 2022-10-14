@@ -5,6 +5,7 @@
  */
 
 import { Account } from '../chain/account';
+import { RCAsset } from '../chain/asset';
 import { getVests } from '../chain/misc';
 import { RCAccountExtended, Manabar, RCAccount, RCDelegation, RCParams, RCPool } from '../chain/rc';
 import { Client } from '../client';
@@ -21,6 +22,14 @@ export class RCAPI {
 
     /**
      * Returns RC data for array of usernames or a single string
+     *
+     * #### Calculation RC
+     * RC = RCS / 1,000,000,000
+     * 25 = 25,000,000,000 / 1,000,000,000
+     *
+     * #### Calculation RCS
+     * RCS = RC * 1,000,000,000
+     * 25,000,000,000 = 25 * 1,000,000,000
      */
     public async getRCAccount(username: string): Promise<RCAccountExtended> {
         const result = await this.getRCAccounts([username]);
@@ -29,6 +38,14 @@ export class RCAPI {
 
     /**
      * Returns RC data for array of usernames or a single string
+     *
+     * #### Calculation RC
+     * RC = RCS / 1,000,000,000
+     * 25 = 25,000,000,000 / 1,000,000,000
+     *
+     * #### Calculation RCS
+     * RCS = RC * 1,000,000,000
+     * 25,000,000,000 = 25 * 1,000,000,000
      */
     public async getRCAccounts(usernames: string[]): Promise<RCAccountExtended[]> {
         const result: { rc_accounts: RCAccount[] } = await this.call('find_rc_accounts', { accounts: Array.isArray(usernames) ? usernames : [usernames] });
@@ -36,34 +53,71 @@ export class RCAPI {
 
         return rc_accounts.map((rc_account) => {
             const manabar = this.calculateRCMana(rc_account);
-            const newAccount: RCAccountExtended = {
+            const rcAccount: RCAccountExtended = {
                 account: rc_account.account,
-                max_rc: rc_account.max_rc,
-                current_rc: manabar.current_mana,
-                percentage_rc: manabar.percentage,
-                delegated_rc: rc_account.delegated_rc,
-                received_delegated_rc: rc_account.received_delegated_rc,
+                max: this.getRCObject(rc_account.max_rc),
+                current: this.getRCObject(manabar.current_mana),
+                percentage: manabar.percentage,
+                delegated: this.getRCObject(rc_account.delegated_rc),
+                received: this.getRCObject(rc_account.received_delegated_rc),
                 max_rc_creation_adjustment: rc_account.max_rc_creation_adjustment,
                 last_update_time: rc_account.rc_manabar.last_update_time,
             };
-            return newAccount;
+            return rcAccount;
         });
     }
 
     /**
      * Returns RC data for array of usernames
+     *
+     * #### Calculation RC
+     * RC = RCS / 1,000,000,000
+     * 25 = 25,000,000,000 / 1,000,000,000
+     *
+     * #### Calculation RCS
+     * RCS = RC * 1,000,000,000
+     * 25,000,000,000 = 25 * 1,000,000,000
      */
-    public async listRCAccounts(start: number, limit: number): Promise<RCAccount[]> {
+    public async listRCAccounts(start: number, limit: number): Promise<RCAccountExtended[]> {
         const result = await this.call('list_rc_accounts', { start, limit });
-        return result?.rc_accounts ?? [];
+        return (result?.rc_accounts ?? []).map((rc_account) => {
+            const manabar = this.calculateRCMana(rc_account);
+            const rcAccount: RCAccountExtended = {
+                account: rc_account.account,
+                max: this.getRCObject(rc_account.max_rc),
+                current: this.getRCObject(manabar.current_mana),
+                percentage: manabar.percentage,
+                delegated: this.getRCObject(rc_account.delegated_rc),
+                received: this.getRCObject(rc_account.received_delegated_rc),
+                max_rc_creation_adjustment: rc_account.max_rc_creation_adjustment,
+                last_update_time: rc_account.rc_manabar.last_update_time,
+            };
+            return rcAccount;
+        });
     }
 
     /**
      * Returns all RC delegations from a given account and optionally also to a specific account
+     *
+     * #### Calculation RC
+     * RC = RCS / 1,000,000,000
+     * 25 = 25,000,000,000 / 1,000,000,000
+     *
+     * #### Calculation RCS
+     * RCS = RC * 1,000,000,000
+     * 25,000,000,000 = 25 * 1,000,000,000
      */
     public async getDelegations(from: string, to?: string, limit = 100): Promise<RCDelegation[]> {
         const result = await this.call('list_rc_direct_delegations', { start: [from, to], limit });
-        return result?.rc_direct_delegations || [];
+        return (result?.rc_direct_delegations || []).map((r) => {
+            const delegation: RCDelegation = { from: r.from, to: r.to, delegation: this.getRCObject(r.delegated_rc) };
+            return delegation;
+        });
+    }
+
+    private getRCObject(rc: string | number) {
+        const rcs = RCAsset.from(rc, 'RCS');
+        return { rc: rcs.fromSatoshi(), rcs };
     }
 
     /**
@@ -89,7 +143,7 @@ export class RCAPI {
     public async getRCMana(username: string): Promise<Manabar> {
         const accounts = await this.getRCAccounts([username]);
         return accounts?.length > 0
-            ? { current_mana: Number(accounts[0].current_rc), max_mana: Number(accounts[0].max_rc), percentage: accounts[0].percentage_rc }
+            ? { current_mana: Number(accounts[0].current.rcs.amount), max_mana: Number(accounts[0].max.rc.amount), percentage: accounts[0].percentage }
             : { current_mana: 0, max_mana: 0, percentage: 0 };
     }
 
@@ -98,13 +152,6 @@ export class RCAPI {
      */
     public calculateRCMana(rc_account: RCAccount): Manabar {
         return this._calculateManabar(Number(rc_account.max_rc), rc_account.rc_manabar);
-    }
-
-    /**
-     * Calculates roughly the amount of RC you'd get from Hivepower
-     */
-    public calculateRoughRCFromHP(hp: number) {
-        return hp * 2 * 1000000000;
     }
 
     /**

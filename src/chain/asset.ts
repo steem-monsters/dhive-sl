@@ -15,7 +15,12 @@ export interface SMTAsset {
 /**
  * Asset symbol string.
  */
-export type AssetSymbol = 'HIVE' | 'VESTS' | 'HBD' | 'TESTS' | 'TBD' | 'STEEM' | 'SBD';
+export type AssetSymbol = 'HIVE' | 'VESTS' | 'HBD' | AssetSymbolLegacy | AssetSymbolTestnet;
+export type AssetSymbolTestnet = 'TESTS' | 'TBD';
+export type AssetSymbolLegacy = 'STEEM' | 'SBD';
+export type AssetSymbolRC = 'RC' | 'RCS';
+
+export const RCS_PER_RC = 1000000000;
 
 /**
  * Class representing a hive asset, e.g. `1.000 HIVE` or `12.112233 VESTS`.
@@ -52,8 +57,8 @@ export class Asset {
                 throw new Error(`Invalid asset, expected symbol: ${symbol} got: ${value.symbol}`);
             }
             return value;
-        } else if (typeof value === 'number' && Number.isFinite(value)) {
-            return new Asset(value, symbol || 'STEEM');
+        } else if (typeof value === 'number' && !Number.isNaN(Number(value)) && Number.isFinite(Number(value))) {
+            return new Asset(Number(value), symbol || 'HIVE');
         } else if (typeof value === 'string') {
             return Asset.fromString(value, symbol);
         } else {
@@ -92,6 +97,7 @@ export class Asset {
             case 'VESTS':
                 return 6;
         }
+        return 0;
     }
 
     /**
@@ -157,6 +163,86 @@ export class Asset {
      */
     public toJSON(): string {
         return this.toString();
+    }
+}
+
+export class RCAsset {
+    constructor(public readonly amount: number, public readonly symbol: AssetSymbolRC) {}
+
+    /**
+     * Create a new Asset instance from a string, e.g. `5 RC`.
+     */
+    public static fromString(string: string, expectedSymbol?: AssetSymbolRC): RCAsset {
+        const [amountString, symbol] = string.split(' ');
+        if (!['RC', 'RCS'].includes(symbol)) {
+            throw new Error(`Invalid asset symbol: ${symbol}`);
+        }
+        if (expectedSymbol && symbol !== expectedSymbol) {
+            throw new Error(`Invalid asset, expected symbol: ${expectedSymbol} got: ${symbol}`);
+        }
+        const amount = Number.parseFloat(amountString);
+        if (!Number.isFinite(amount)) {
+            throw new Error(`Invalid asset amount: ${amountString}`);
+        }
+        return new RCAsset(amount, symbol as AssetSymbolRC);
+    }
+
+    /**
+     * Convenience to create new Asset.
+     * @param symbol Symbol to use when created from number. Will also be used to validate
+     *               the asset, throws if the passed value has a different symbol than this.
+     */
+    public static from(value: string | Asset | number, symbol?: AssetSymbolRC) {
+        if (value instanceof RCAsset) {
+            if (symbol && value.symbol !== symbol) {
+                throw new Error(`Invalid asset, expected symbol: ${symbol} got: ${value.symbol}`);
+            }
+            return value;
+        } else if (!Number.isNaN(Number(value)) && Number.isFinite(Number(value))) {
+            return new RCAsset(Number(value), symbol || 'RC');
+        } else if (typeof value === 'string') {
+            return RCAsset.fromString(value, symbol);
+        } else {
+            throw new Error(`Invalid asset '${String(value)}'`);
+        }
+    }
+
+    /**
+     * Return asset precision.
+     */
+    public getPrecision(): number {
+        switch (this.symbol) {
+            case 'RC':
+                return 9;
+            case 'RCS':
+                0;
+        }
+        return 0;
+    }
+    /**
+     * Returns amount of RCS
+     * RC => Resource Credits
+     * RCS => Resource Credits Satoshis
+     *
+     * 1  RC = 1,000,000,000 RCS
+     * 15 RC = 15 * 1,000,000,000 RCS
+     */
+    public toSatoshi() {
+        if (this.symbol === 'RCS') return this;
+        return RCAsset.from(parseFloat((this.amount * RCS_PER_RC).toFixed(0)), 'RCS');
+    }
+
+    /**
+     * Returns amount of RC
+     * RC => Resource Credits
+     * RCS => Resource Credits Satoshis
+     *
+     * 1  RC = 1,000,000,000 RCS
+     * 15 RC = 15 * 1,000,000,000 RCS
+     */
+    public fromSatoshi() {
+        if (this.symbol === 'RC') return this;
+        return RCAsset.from(parseFloat((this.amount / RCS_PER_RC).toFixed(9)), 'RC');
     }
 }
 

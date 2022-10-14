@@ -152,6 +152,13 @@ export class BroadcastAPI {
         return this.sendOperations([op], key);
     }
 
+    /**
+     * Delegates RC by either using RC or RCS (Resource Credits Satoshis).
+     *
+     * 1 RC = 1,000,000,000 RCS
+     *
+     * Example for max_rc: '5 RC' or '5000000000 RCS' or RCAsset.from(5, 'RC')
+     */
     public async delegateRC(data: DelegateRCOperation, key: string | string[] | PrivateKey | PrivateKey[]) {
         const op = this.client.operation.delegateRC(data);
         return this.sendOperations([op], key);

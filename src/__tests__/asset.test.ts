@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-import { Asset, Price, getVestingSharePrice } from '..';
+import { Asset, Price, getVestingSharePrice, RCS_PER_RC, RCAsset } from '..';
 
 describe('asset', function () {
     it('should create from string', function () {
@@ -96,5 +96,17 @@ describe('asset', function () {
         assert.throws(() => {
             price1.convert(Asset.from(1, 'VESTS'));
         });
+    });
+
+    it('should get RC', () => {
+        const rc = RCAsset.from(5, 'RC');
+        expect(rc.amount).toEqual(5);
+        expect(rc.symbol).toEqual('RC');
+
+        const rcs = rc.toSatoshi();
+        expect(rcs.amount).toEqual(rc.amount * RCS_PER_RC);
+
+        const rc2 = rcs.fromSatoshi();
+        expect(rc2.amount).toEqual(rcs.amount / RCS_PER_RC);
     });
 });

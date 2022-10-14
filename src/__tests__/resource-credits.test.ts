@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { RCAsset } from '../chain/asset';
 import { RCAccount } from '../chain/rc';
 import { TEST_CLIENT } from './common';
 
@@ -14,6 +15,8 @@ describe('rc_api', function () {
     it('should get RC Account', async () => {
         const account = await TEST_CLIENT.rc.getRCAccount('therealwolf');
         expect(account.account === 'therealwolf').toBeTruthy();
+        expect(account.current.rc.symbol).toEqual('RC');
+        expect(account.current.rcs.symbol).toEqual('RCS');
     });
 
     it('calculateVPMana', () => {
@@ -65,5 +68,16 @@ describe('rc_api', function () {
     it('getRCDelegations', async () => {
         const result = await TEST_CLIENT.rc.getDelegations('therealwolf');
         expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should create delegateRC custom_json', async () => {
+        for (const max_rc of ['5 RC', '5000000000 RCS']) {
+            const op = TEST_CLIENT.operation.delegateRC({ from: 'therealwolf', to: 'hive.dao', max_rc });
+            expect(op[0] === 'custom_json').toBeTruthy();
+            expect(op[1].id === 'rc').toBeTruthy();
+            const json = JSON.parse(op[1].json);
+            expect(json[0] === 'delegate_rc').toBeTruthy();
+            expect(json[1].max_rc === RCAsset.from(max_rc).toSatoshi().amount).toBeTruthy();
+        }
     });
 });

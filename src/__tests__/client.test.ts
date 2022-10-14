@@ -24,11 +24,10 @@ describe('TEST_CLIENT', function () {
 
     it('should handle hive-engine failover', async () => {
         const bclient = new Client({
-            engine: { nodes: [`woopswrong${HiveEngineClient.defaultNodes[0]}`].concat([...HiveEngineClient.defaultNodes]) },
+            engine: { nodes: [`https://woopswrong${HiveEngineClient.defaultNodes[0]}`].concat([...HiveEngineClient.defaultNodes]) },
             timeout: 1000,
             nodeErrorLimit: 1,
         });
-        await bclient.loadNodes();
 
         const result = await bclient.engine.blockchain.getLatestBlock();
         expect(result?._id).not.toBe(null);

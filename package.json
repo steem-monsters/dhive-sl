@@ -20,7 +20,7 @@
         "lint": "eslint src --ext .ts",
         "lint:fix": "eslint src --ext .ts --fix",
         "start": "node -r dotenv/config dist/index.js",
-        "test": "jest",
+        "test": "LOGGING_LEVEL=0 jest",
         "test:int": "NODE_ENV=test jest -c jest.config.int.js --runInBand --detectOpenHandles",
         "test:unit": "ts-jest -c jest.config.ts --watchAll --maxWorkers=1",
         "test:watch": "ts-jest -c jest.config.int.js --silent --watchAll --detectOpenHandles",

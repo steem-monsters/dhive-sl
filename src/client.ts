@@ -6,7 +6,7 @@ import { HivemindAPI } from './modules/hivemind';
 import { AccountByKeyAPI } from './modules/key';
 import { RCAPI } from './modules/rc';
 import { TransactionStatusAPI } from './modules/transaction';
-import { copy, LogLevel, log, WrappedPseudoInterval, setSingleEntryInterval } from './utils';
+import { LogLevel, log, WrappedPseudoInterval, setSingleEntryInterval } from './utils';
 import { HiveEngineClient, HiveEngineParameters } from './modules/engine/engine';
 import { BeaconAPI, BeaconParameters } from './modules/beacon';
 import { PrivateKey } from './chain/keys/keys';
