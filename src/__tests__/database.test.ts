@@ -1,4 +1,4 @@
-import { Asset, PrivateKey, generatePassword, Transaction } from '..';
+import { Asset, PrivateKey, generatePassword, Transaction, AccountAuthsAccount } from '..';
 import { sortAsc } from '../utils';
 import { TEST_CLIENT } from './common';
 
@@ -9,8 +9,61 @@ describe('database api', function () {
     let serverConfig: { [key: string]: boolean | string | number };
 
     it('should getAccount', async () => {
-        const account = await TEST_CLIENT.database.getAccount('initminer', { logErrors: false });
-        expect(account?.name).toEqual('initminer');
+        const account = await TEST_CLIENT.database.getAccount('dhive-sl', { logErrors: false });
+        expect(account?.name).toEqual('dhive-sl');
+    });
+
+    it('should getAccountAuths', async () => {
+        const auths = await TEST_CLIENT.database.getAccountAuths('dhive-sl', 'posting');
+        expect(auths.keys.length === 3).toBeTruthy();
+        expect(auths.accounts.length === 4).toBeTruthy();
+        expect(auths.threshold).toEqual(2);
+
+        for (const keyAuth of auths.keys) {
+            if (keyAuth.key === 'STM6J2hTGcwU9xSrcb5mzyLPw3Wig8YCcvDrQZ8sMLSz3JN4BQWVj') {
+                expect(keyAuth.weight).toEqual(2);
+                expect(keyAuth.threshold_reached).toBeTruthy();
+            } else if (keyAuth.key === 'STM7Mn9hpcaTJoUNzpH8EQJXTC6sjUptEoTgdKwvjM4DCTN3xDWjE') {
+                expect(keyAuth.weight).toEqual(1);
+                expect(keyAuth.threshold_reached).toBeFalsy();
+            } else if (keyAuth.key === 'STM8buYSYDiZ5gwLsqUBsGyvXaiWWiuwcW8d8d1snfXHsH81KMW66') {
+                expect(keyAuth.weight).toEqual(1);
+                expect(keyAuth.threshold_reached).toBeFalsy();
+            }
+        }
+
+        for (const accountAuth of auths.accounts) {
+            if (accountAuth.key === 'STM6JeCCbawL6yptpuUstnEroaUVbc46EYYLgNkzgsTBGSydFz6qk') {
+                expect(accountAuth.weight).toEqual(2);
+                expect(accountAuth.account).toEqual('dhive-sl-2');
+                expect(accountAuth.account_weight).toEqual(2);
+                expect(accountAuth.account_threshold).toEqual(2);
+                expect(accountAuth.threshold_reached).toBeTruthy();
+            } else if (accountAuth.key === 'STM6oZs7MaFo9VC4NYUy3kdqkAG5cT8sKvUWNw3SmHdSmj6DSaTDB') {
+                expect(accountAuth.weight).toEqual(1);
+                expect(accountAuth.account).toEqual('dhive-sl-2');
+                expect(accountAuth.account_weight).toEqual(2);
+                expect(accountAuth.account_threshold).toEqual(2);
+                expect(accountAuth.threshold_reached).toBeFalsy();
+            } else if (accountAuth.key === 'STM72nZZHPZu34634TML6vbxoz4PwGpzCabYcQjbpFbCegiafT9FJ') {
+                expect(accountAuth.weight).toEqual(1);
+                expect(accountAuth.account).toEqual('dhive-sl-2');
+                expect(accountAuth.account_weight).toEqual(2);
+                expect(accountAuth.account_threshold).toEqual(2);
+                expect(accountAuth.threshold_reached).toBeFalsy();
+            } else if (accountAuth.key === 'STM6q23tKVxbVhcTWEBo39Gxb5JP4ipNsmpqBLEJuPwtv7srEAyjD') {
+                expect(accountAuth.weight).toEqual(1);
+                expect(accountAuth.account).toEqual('dhive-sl-3');
+                expect(accountAuth.account_weight).toEqual(1);
+                expect(accountAuth.account_threshold).toEqual(1);
+                expect(accountAuth.threshold_reached).toBeFalsy();
+            }
+        }
+
+        const activeAuths = await TEST_CLIENT.database.getAccountAuths('dhive-sl', 'active');
+        expect(activeAuths.keys.length === 1).toBeTruthy();
+        expect(activeAuths.accounts.length === 1).toBeTruthy();
+        expect(activeAuths.threshold).toEqual(1);
     });
 
     it('getDynamicGlobalProperties', async function () {

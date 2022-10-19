@@ -207,7 +207,7 @@ export class ClientFetch {
             /**
              * Beacon nodes loading hasn't started yet and no nodes have been given as parameter
              */
-            if (!this.beacon.loadOnInitialize && (!this.nodes || this.nodes.filter((node) => !node.disabled).length <= 0)) {
+            if (!this.beacon.loadOnInitialize && (!this.nodes || this.nodes.length <= 0)) {
                 /**
                  * Load beacon nodes
                  */

@@ -4,7 +4,7 @@
  * @license BSD-3-Clause-No-Military-License
  */
 
-import { Account } from '../chain/account';
+import { Account, Authority } from '../chain/account';
 import { Price } from '../chain/asset';
 import { BlockHeader, SignedBlock } from '../chain/block';
 import { Discussion } from '../chain/comment';
@@ -64,6 +64,24 @@ export interface DisqussionQuery {
     start_permlink?: string;
     parent_author?: string;
     parent_permlink?: string;
+}
+
+export interface AccountAuths {
+    keys: AccountAuthsKey[];
+    accounts: AccountAuthsAccount[];
+    threshold: number;
+}
+
+export interface AccountAuthsKey {
+    key: string;
+    weight: number;
+    threshold_reached: boolean;
+}
+
+export interface AccountAuthsAccount extends AccountAuthsKey {
+    account: string;
+    account_weight: number;
+    account_threshold: number;
 }
 
 export class DatabaseAPI {
@@ -227,16 +245,79 @@ export class DatabaseAPI {
      */
     public async getAccountPublicKeys(account: string | Account, role: KeyRole): Promise<{ key: string; weight: number }[]> {
         const finalAccount = typeof account === 'string' ? await this.getAccount(account) : account;
-        if (!finalAccount) return [];
+        if (!finalAccount?.[role]?.key_auths) return [];
 
         if (role === 'memo') return [{ key: finalAccount.memo_key, weight: 1 }];
-        if (!finalAccount[role].key_auths || finalAccount[role].key_auths.length === 0 || !finalAccount[role].key_auths[0] || !finalAccount[role].key_auths[0][0]) {
-            return [];
+        return this.convertKeysFromAccount(finalAccount[role]);
+    }
+
+    /**
+     * Returns the public keys of a specified role from a given account name
+     */
+    public async getAccountAuths(account: string | Account, role: KeyRole): Promise<AccountAuths> {
+        const finalAccount = typeof account === 'string' ? await this.getAccount(account) : account;
+        const result: AccountAuths = { keys: [], accounts: [], threshold: finalAccount?.[role]?.weight_threshold ?? 1 };
+        if (!finalAccount) return result;
+
+        const auths: Authority | undefined = finalAccount?.[role];
+        const accountAuths: Authority['account_auths'] = auths?.account_auths ?? [];
+
+        if (role === 'memo') {
+            result.keys = [{ key: finalAccount.memo_key, weight: 1, threshold_reached: true }];
+        } else {
+            // This only goes down one level to verify authorities, even though Hive supports multiple levels
+            const accounts = await this.getAccounts(
+                accountAuths.map((a) => a[0]),
+                { allOrNothing: false, logErrors: false },
+            );
+            result.keys = this.convertKeysFromAccount(auths);
+            result.accounts = ([] as AccountAuths['accounts']).concat(
+                ...accounts.map((a) => {
+                    const baseAccountAuth = accountAuths.filter((aa) => aa[0] === a.name)[0];
+                    const baseAccountWeight = baseAccountAuth?.[1] || 1;
+                    const baseAccountThreshold = auths?.weight_threshold || 1;
+                    const array: AccountAuths['accounts'] = this.convertAccountAuthsFromAccount(a.name, a[role], baseAccountWeight, baseAccountThreshold).map((k) => {
+                        return {
+                            key: k.key,
+                            weight: k.weight,
+                            account: a.name,
+                            account_weight: k.account_weight,
+                            account_threshold: k.account_threshold,
+                            threshold_reached: k.threshold_reached,
+                        };
+                    });
+                    return array;
+                }),
+            );
         }
 
-        return finalAccount[role].key_auths.map((keyArray) => {
+        return result;
+    }
+
+    private convertKeysFromAccount(auth: Authority | undefined): AccountAuthsKey[] {
+        return (auth?.key_auths || []).map((keyArray) => {
             const key = keyArray[0];
-            return { key: key instanceof PublicKey ? key.toString() : key, weight: keyArray[1] };
+            const weight = keyArray[1];
+            return {
+                key: key instanceof PublicKey ? key.toString() : key,
+                weight,
+                threshold_reached: weight >= (auth?.weight_threshold || 1),
+            };
+        });
+    }
+
+    private convertAccountAuthsFromAccount(accountName: string, auth: Authority | undefined, baseAccountWeight: number, baseAccountThreshold: number): AccountAuthsAccount[] {
+        return (auth?.key_auths || []).map((keyArray) => {
+            const key = keyArray[0];
+            const weight = keyArray[1];
+            return {
+                key: key instanceof PublicKey ? key.toString() : key,
+                weight,
+                account: accountName,
+                account_weight: baseAccountWeight,
+                account_threshold: auth?.weight_threshold || 1,
+                threshold_reached: weight >= (auth?.weight_threshold || 1) && baseAccountWeight >= baseAccountThreshold,
+            };
         });
     }
 

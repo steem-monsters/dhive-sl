@@ -192,7 +192,7 @@ export class RCAsset {
      * @param symbol Symbol to use when created from number. Will also be used to validate
      *               the asset, throws if the passed value has a different symbol than this.
      */
-    public static from(value: string | Asset | number, symbol?: AssetSymbolRC) {
+    public static from(value: string | Asset | number, symbol?: AssetSymbolRC): RCAsset {
         if (value instanceof RCAsset) {
             if (symbol && value.symbol !== symbol) {
                 throw new Error(`Invalid asset, expected symbol: ${symbol} got: ${value.symbol}`);

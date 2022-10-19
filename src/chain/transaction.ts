@@ -43,7 +43,7 @@ export class Transaction {
      * How many milliseconds in the future to set the expiry time to when
      * broadcasting a transaction, defaults to 10 minutes.
      */
-    public static expireTime = 600 * 1000;
+    public static expireTime = 10 * 60 * 1000;
 
     public ref_block_num: TransactionParameters['ref_block_num'];
     public ref_block_prefix: TransactionParameters['ref_block_prefix'];
