@@ -19,6 +19,7 @@ export * from './modules/key';
 export * from './modules/operation';
 export * from './modules/rc';
 export * from './modules/transaction';
+export * from './modules/usage';
 
 export * from './chain/keys/keys';
 export * from './chain/keys/utils';
