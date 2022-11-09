@@ -214,13 +214,14 @@ export class DatabaseAPI {
      */
     public async getAccounts(names: string[], { allOrNothing = false, logErrors = false }: GetAccountOptions = {}): Promise<Account[]> {
         const accounts: Account[] = await this.call('get_accounts', [names]);
+        const accountNames = new Set(accounts.map((a) => a.name));
         const isValidResult = accounts && accounts.length === names.length;
         if (!isValidResult) {
             if (!accounts || accounts.length <= 0) {
                 if (logErrors) log(`Error loading account${accounts.length > 1 ? 's' : ''}: ${names.join(', ')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                 return [];
             }
-            const missing = names.filter((name) => !accounts.some((r) => r.name === name));
+            const missing = names.filter((name) => !accountNames.has(name));
             if (missing.length > 0) {
                 if (logErrors) log(`Error loading accounts: ${missing.join(',')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                 if (allOrNothing) {
