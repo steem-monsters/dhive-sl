@@ -214,13 +214,14 @@ export class DatabaseAPI {
      */
     public async getAccounts(names: string[], { allOrNothing = false, logErrors = false }: GetAccountOptions = {}): Promise<Account[]> {
         const accounts: Account[] = await this.call('get_accounts', [names]);
+        const accountNames = new Set(accounts.map((a) => a.name));
         const isValidResult = accounts && accounts.length === names.length;
         if (!isValidResult) {
             if (!accounts || accounts.length <= 0) {
                 if (logErrors) log(`Error loading account${accounts.length > 1 ? 's' : ''}: ${names.join(', ')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                 return [];
             }
-            const missing = names.filter((name) => accounts.filter((r) => r.name === name).length === 0);
+            const missing = names.filter((name) => !accountNames.has(name));
             if (missing.length > 0) {
                 if (logErrors) log(`Error loading accounts: ${missing.join(',')}`, logErrors ? LogLevel.Warning : LogLevel.Debug);
                 if (allOrNothing) {
@@ -273,7 +274,7 @@ export class DatabaseAPI {
             result.keys = this.convertKeysFromAccount(auths);
             result.accounts = ([] as AccountAuths['accounts']).concat(
                 ...accounts.map((a) => {
-                    const baseAccountAuth = accountAuths.filter((aa) => aa[0] === a.name)[0];
+                    const baseAccountAuth = accountAuths.find((aa) => aa[0] === a.name);
                     const baseAccountWeight = baseAccountAuth?.[1] || 1;
                     const baseAccountThreshold = auths?.weight_threshold || 1;
                     const array: AccountAuths['accounts'] = this.convertAccountAuthsFromAccount(a.name, a[role], baseAccountWeight, baseAccountThreshold).map((k) => {
