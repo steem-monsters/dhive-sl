@@ -309,7 +309,7 @@ export const prependHttp = (url: string, { https = true, blank = false } = {}) =
 
 export const uniqueArray = <T>(a: any[], key?: string): T[] => {
     if (key) {
-        return [...new Set(a.map((r) => r[key]))].map((r) => a.filter((r2) => r2[key] === r)[0]);
+        return [...new Set(a.map((r) => r[key]))].map((r) => a.find((r2) => r2[key] === r));
     }
 
     return [...new Set(a.map((o) => JSON.stringify(o)))].map((s) => JSON.parse(s as any));

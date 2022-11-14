@@ -116,7 +116,7 @@ export class ClientFetch {
         const bnodes: RpcNode[] = [];
         for (let i = 0; i < this.beaconNodes.length; i++) {
             const bnode = this.beaconNodes[i];
-            const nodeExists = this._nodes.filter((node) => node.endpoint === bnode.endpoint)[0];
+            const nodeExists = this._nodes.find((node) => node.endpoint === bnode.endpoint);
             if (!nodeExists) bnodes.push(bnode);
         }
         const combinedNodes = this._nodes.concat(bnodes);
@@ -156,13 +156,13 @@ export class ClientFetch {
                 if (beaconNodes.length > 0) {
                     // Disable nodes that are beaconNodes but not found in current request
                     for (let i = 0; i < this.beaconNodes.length; i++) {
-                        const includedNode = beaconNodes.filter((node) => node.name === this.beaconNodes[i].name)[0];
+                        const includedNode = beaconNodes.find((node) => node.name === this.beaconNodes[i].name);
                         if (!includedNode) this.beaconNodes[i].disabled = true;
                     }
 
                     for (let i = 0; i < beaconNodes.length; i++) {
                         const newBNode = beaconNodes[i];
-                        const existingNode = this.beaconNodes.filter((node) => node.name === newBNode.name)[0];
+                        const existingNode = this.beaconNodes.find((node) => node.name === newBNode.name);
                         // Beacon node does not exist yet, add to array
                         if (!existingNode) {
                             this.beaconNodes.push({ ...newBNode, disabled: false, errors: 0, lastError: 0, type: this.fetchType });
@@ -188,7 +188,7 @@ export class ClientFetch {
                 }, this.beacon.intervalTime * 1000);
             }
         }
-        if (this.nodes.filter((node) => !node.disabled).length > 0) this.isInitialized = true;
+        if (this.nodes.some((node) => !node.disabled)) this.isInitialized = true;
     }
 
     /**
@@ -224,7 +224,10 @@ export class ClientFetch {
             }
         }
 
-        assert(this.nodes.filter((node) => !node.disabled).length > 0, 'nodes is empty. Either set nodes manually or run client.loadNodes()');
+        assert(
+            this.nodes.some((node) => !node.disabled),
+            'nodes is empty. Either set nodes manually or run client.loadNodes()',
+        );
 
         const request: RPCCall =
             this.fetchType === 'hive'
