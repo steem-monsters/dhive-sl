@@ -108,6 +108,11 @@ export interface ClientOptions {
      * @see https://nodejs.org/api/http.html#http_new_agent_options.
      */
     agent?: any; // https.Agent
+
+    /**
+     * Whether native fetch method or cross-fetch should be used to broadcast
+     */
+    fetchMethod?: 'native' | 'cross-fetch';
 }
 
 /**
@@ -218,9 +223,9 @@ export class Client {
         this.addressPrefix = options.addressPrefix || DEFAULT_ADDRESS_PREFIX;
         this.blockchainMode = options.blockchainMode || 'latest';
 
-        this.beacon = new BeaconAPI(options.beacon);
+        this.beacon = new BeaconAPI(options.beacon, options.fetchMethod);
         this.fetch = {
-            hive: new ClientFetch('hive', this.beacon, options.nodes, options.timeout, options.nodeErrorLimit, this.options.agent),
+            hive: new ClientFetch('hive', this.beacon, options.nodes, options.timeout, options.nodeErrorLimit, options.agent, options.fetchMethod),
             engine: new ClientFetch('hiveengine', this.beacon, options.engine?.nodes || HiveEngineClient.defaultNodes, options.timeout, options.nodeErrorLimit),
         };
 

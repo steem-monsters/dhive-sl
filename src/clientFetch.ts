@@ -2,7 +2,7 @@ import assert from 'assert';
 import { BeaconAPI, BeaconNode } from './modules/beacon';
 import { copy, isTxError, log, prependHttp, timeout } from './utils';
 import { VError } from 'verror';
-import fetch from 'cross-fetch';
+import crossFetch from 'cross-fetch';
 
 interface RPCRequest {
     /**
@@ -93,7 +93,15 @@ export class ClientFetch {
 
     private agent?: any;
 
-    constructor(private fetchType: 'hive' | 'hiveengine', private beacon: BeaconAPI, nodes?: string | string[], timeout = 1000, nodeErrorLimit = 10, agent?: any) {
+    constructor(
+        private fetchType: 'hive' | 'hiveengine',
+        private beacon: BeaconAPI,
+        nodes?: string | string[],
+        timeout = 1000,
+        nodeErrorLimit = 10,
+        agent?: any,
+        private fetchMethod?: 'native' | 'cross-fetch',
+    ) {
         this.timeout = timeout;
         this.nodeErrorLimit = nodeErrorLimit;
         this.agent = agent;
@@ -298,7 +306,10 @@ export class ClientFetch {
                     this.currentNode = this.nodes[i];
 
                     try {
-                        const response = await fetch(this.fetchType === 'hiveengine' ? `${this.currentNode.endpoint}/${method}` : this.currentNode.endpoint, opts);
+                        const response =
+                            this.fetchMethod === 'native'
+                                ? await fetch(this.fetchType === 'hiveengine' ? `${this.currentNode.endpoint}/${method}` : this.currentNode.endpoint, opts)
+                                : await crossFetch(this.fetchType === 'hiveengine' ? `${this.currentNode.endpoint}/${method}` : this.currentNode.endpoint, opts);
                         // log(`${api}.${method} request to ${this.currentNode.endpoint}`, LogLevel.Debug);
                         if (!response.ok) {
                             throw new Error(`HTTP ${response.status}: ${response.statusText}`);

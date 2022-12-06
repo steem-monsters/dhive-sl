@@ -3,7 +3,7 @@
  * @author Wolf
  */
 
-import fetch from 'cross-fetch';
+import crossFetch from 'cross-fetch';
 import { prependHttp } from '../utils';
 
 interface BeaconNodeBase {
@@ -71,7 +71,7 @@ export class BeaconAPI {
     private url: string;
     private minimumScore: number;
 
-    constructor(options: BeaconParameters = {}) {
+    constructor(options: BeaconParameters = {}, private fetchMethod?: 'native' | 'cross-fetch') {
         this.url = options.url || 'https://beacon.peakd.com/api';
 
         this.intervalTime = options.intervalTime || 300;
@@ -85,7 +85,7 @@ export class BeaconAPI {
      */
     private async call(method: string, params?: any) {
         try {
-            const result = await fetch(`${this.url}/${method}${params || ''}`);
+            const result = this.fetchMethod === 'native' ? await fetch(`${this.url}/${method}${params || ''}`) : await crossFetch(`${this.url}/${method}${params || ''}`);
             return result.ok ? result.json() : null;
         } catch (error) {
             return null;
