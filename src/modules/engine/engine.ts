@@ -22,7 +22,8 @@ export interface HiveEngineOptions {
 export type HiveEngineParameters = Partial<HiveEngineOptions>;
 
 export class HiveEngineClient {
-    public static defaultNodes = ['https://api.hive-engine.com/rpc', 'https://herpc.dtools.dev'];
+    public static defaultNodes = ['https://api.hive-engine.com/rpc', 'https://herpc.dtools.dev', 'https://enginerpc.com'];
+    public static defaultChainId = 'ssc-mainnet-hive';
     // Modules
     public readonly blockchain: HiveEngineBlockchainApi;
     public readonly contracts: HiveEngineContractsApi;
@@ -38,8 +39,8 @@ export class HiveEngineClient {
 
     constructor(private hiveClient: Client, parameters: HiveEngineParameters = {}) {
         this.options = {
-            nodes: ['https://api.hive-engine.com/rpc', 'https://herpc.dtools.dev'],
-            chainId: 'ssc-mainnet-hive',
+            nodes: HiveEngineClient.defaultNodes,
+            chainId: HiveEngineClient.defaultChainId,
             saveState: (lastBlock: number) => this.saveState(lastBlock),
             loadState: () => this.loadState(),
             stateFile: 'state_he.json',
