@@ -103,6 +103,13 @@ export interface ClientOptions {
     memoPrefix?: string;
 
     /**
+     * Key for unique nounce within custom_jsons
+     * i.e. `n` for {n: 'a25BAdjf'}
+     * If empty or false (default) nounce is not set
+     */
+    uniqueNounceKey?: string | false | null;
+
+    /**
      * Node.js http(s) agent, use if you want http keep-alive.
      * Defaults to using https.globalAgent.
      * @see https://nodejs.org/api/http.html#http_new_agent_options.
@@ -231,7 +238,7 @@ export class Client {
 
         this.database = new DatabaseAPI(this);
         this.broadcast = new BroadcastAPI(this);
-        this.operation = new OperationAPI(this);
+        this.operation = new OperationAPI(this, options.uniqueNounceKey);
         this.blockchain = new Blockchain(this, options.stream);
         this.rc = new RCAPI(this);
         this.hivemind = new HivemindAPI(this);

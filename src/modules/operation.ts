@@ -69,7 +69,7 @@ export interface CustomJsonOptions {
     json: Record<string, any> | unknown;
     account: string;
     role?: KeyRolePosting | KeyRoleActive;
-    uniqueNounce?: string | null | false;
+    uniqueNounceKey?: string | null | false;
 }
 
 export interface UpdateAccountAuthorityThreshold {
@@ -97,7 +97,7 @@ export interface DelegateRCOperation {
 }
 
 export class OperationAPI {
-    constructor(readonly client: Client) {}
+    constructor(readonly client: Client, private uniqueNounceKey?: string | null | false) {}
 
     public comment(data: CommentOperation[1]): CommentOperation {
         return ['comment', data];
@@ -118,9 +118,15 @@ export class OperationAPI {
         return ['transfer', data];
     }
 
-    public customJson<ID = string, JSON = string>({ id, account, json, role = 'posting', uniqueNounce = 'n' }: CustomJsonOptions): CustomJsonOperation<ID, JSON> {
+    public customJson<ID = string, JSON = string>({
+        id,
+        account,
+        json,
+        role = 'posting',
+        uniqueNounceKey = this.uniqueNounceKey,
+    }: CustomJsonOptions): CustomJsonOperation<ID, JSON> {
         if (json && typeof json === 'object') {
-            if (uniqueNounce && !json[uniqueNounce]) json[uniqueNounce] = generateUniqueNounce();
+            if (uniqueNounceKey && !json[uniqueNounceKey]) json[uniqueNounceKey] = generateUniqueNounce();
             json = JSON.stringify(json);
         }
         const opData = {
