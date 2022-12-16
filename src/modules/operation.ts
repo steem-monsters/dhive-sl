@@ -22,6 +22,7 @@ import {
     VoteOperation,
 } from '../chain/operation';
 import { Client } from '../client';
+import { generateUniqueNounce } from '../utils';
 
 export interface CreateAccountOptions {
     /**
@@ -65,9 +66,10 @@ export interface CreateAccountOptions {
 
 export interface CustomJsonOptions {
     id: string;
-    json: Record<string, any>;
+    json: Record<string, any> | unknown;
     account: string;
     role?: KeyRolePosting | KeyRoleActive;
+    uniqueNounce?: string | null | false;
 }
 
 export interface UpdateAccountAuthorityThreshold {
@@ -116,10 +118,14 @@ export class OperationAPI {
         return ['transfer', data];
     }
 
-    public customJson<ID = string, JSON = string>({ id, account, json, role = 'posting' }: CustomJsonOptions): CustomJsonOperation<ID, JSON> {
+    public customJson<ID = string, JSON = string>({ id, account, json, role = 'posting', uniqueNounce = 'n' }: CustomJsonOptions): CustomJsonOperation<ID, JSON> {
+        if (json && typeof json === 'object') {
+            if (uniqueNounce && !json[uniqueNounce]) json[uniqueNounce] = generateUniqueNounce();
+            json = JSON.stringify(json);
+        }
         const opData = {
             id,
-            json: JSON.stringify(json),
+            json,
             required_auths: role === 'active' ? [account] : [],
             required_posting_auths: role == 'posting' ? [account] : [],
         };

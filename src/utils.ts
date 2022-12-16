@@ -348,3 +348,14 @@ export function setSingleEntryInterval<TArgs extends any[]>(callback: (...args: 
 
 export const sortAsc = (arr: any[], key?: string) => [...arr].sort((a, b) => (key ? a[key] - b[key] : a - b));
 export const sortDesc = (arr: any[], key?: string) => [...arr].sort((a, b) => (key ? b[key] - a[key] : b - a));
+
+export const generateUniqueNounce = (length = 8, rng?: any) => {
+    if (!rng) rng = Math.random;
+
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let retVal = '';
+    for (let i = 0, n = charset.length; i < length; ++i) {
+        retVal += charset.charAt(Math.floor(rng() * n));
+    }
+    return retVal;
+};

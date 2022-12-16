@@ -7,6 +7,8 @@ import { PublicKeyHiveJs } from '../serializer-hivejs/publickey';
 import { PrivateKeyHiveJS } from '../serializer-hivejs/privatekey';
 import { DEFAULT_ADDRESS_PREFIX } from '../../constants';
 
+export type PrivateKeyArg = string | string[] | PrivateKey | PrivateKey[];
+
 export interface GeneratedHiveKeys {
     owner: string;
     active: string;

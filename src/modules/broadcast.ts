@@ -17,7 +17,7 @@ import {
 import { SignedTransaction, Transaction, TransactionConfirmation } from '../chain/transaction';
 import { log } from '../utils';
 import { Client } from '../client';
-import { PrivateKey } from '../chain/keys/keys';
+import { PrivateKey, PrivateKeyArg } from '../chain/keys/keys';
 import { CreateAccountOptions, CustomJsonOptions, DelegateRCOperation, UpdateAccountAuthorityOperation, UpdateAccountAuthorityThreshold } from './operation';
 
 export class BroadcastAPI {
@@ -28,7 +28,7 @@ export class BroadcastAPI {
      * @param data The comment/post.
      * @param key Private posting key of comment author.
      */
-    public async comment(data: CommentOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async comment(data: CommentOperation[1], key: PrivateKeyArg) {
         const op = this.client.operation.comment(data);
         return this.sendOperations([op], key);
     }
@@ -39,7 +39,7 @@ export class BroadcastAPI {
      * @param options The comment/post options.
      * @param key Private posting key of comment author.
      */
-    public async commentWithOptions(data: CommentOperation[1], options: CommentOptionsOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async commentWithOptions(data: CommentOperation[1], options: CommentOptionsOperation[1], key: PrivateKeyArg) {
         const ops = this.client.operation.commentWithOptions(data, options);
         return this.sendOperations(ops, key);
     }
@@ -49,7 +49,7 @@ export class BroadcastAPI {
      * @param data The vote to send.
      * @param key Private posting key of the voter.
      */
-    public async vote(data: VoteOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async vote(data: VoteOperation[1], key: PrivateKeyArg) {
         const op = this.client.operation.vote(data);
         return this.sendOperations([op], key);
     }
@@ -59,7 +59,7 @@ export class BroadcastAPI {
      * @param data The transfer operation payload.
      * @param key Private active key of sender.
      */
-    public async transfer(data: TransferOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async transfer(data: TransferOperation[1], key: PrivateKeyArg) {
         const op = this.client.operation.transfer(data);
         return this.sendOperations([op], key);
     }
@@ -69,14 +69,14 @@ export class BroadcastAPI {
      * @param data The custom_json operation payload.
      * @param key Private posting or active key.
      */
-    public async customJson(data: CustomJsonOptions, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async customJson(data: CustomJsonOptions, key: PrivateKeyArg) {
         const op = this.client.operation.customJson(data);
         return this.sendOperations([op], key);
     }
 
-    public async customJsonQueue(data: CustomJsonOptions, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async customJsonQueue(data: CustomJsonOptions, key: PrivateKeyArg) {
         return new Promise((resolve, reject) => {
-            this.client.queueTransaction(data, key, (data: CustomJsonOptions, key: string | string[] | PrivateKey | PrivateKey[]) =>
+            this.client.queueTransaction(data, key, (data: CustomJsonOptions, key: PrivateKeyArg) =>
                 this.customJson(data, key)
                     .then((r) => {
                         log(`Custom JSON [${data.id}] broadcast successfully - Tx: [${r.id}].`, 3);
@@ -95,7 +95,7 @@ export class BroadcastAPI {
      * @param options New account options.
      * @param key Private active key of account creator.
      */
-    public async createTestAccount(options: CreateAccountOptions, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async createTestAccount(options: CreateAccountOptions, key: PrivateKeyArg) {
         const ops = await this.client.operation.createTestAccount(options);
         return this.sendOperations(ops, key);
     }
@@ -106,7 +106,7 @@ export class BroadcastAPI {
      * @param key The private key of the account affected, should be the corresponding
      *            key level or higher for updating account authorities.
      */
-    public async updateAccount(data: AccountUpdateOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async updateAccount(data: AccountUpdateOperation[1], key: PrivateKeyArg) {
         const op = this.client.operation.updateAccount(data);
         return this.sendOperations([op], key);
     }
@@ -114,7 +114,7 @@ export class BroadcastAPI {
     /**
      * Updates account authority and adds/removes specific account/key as [owner/active/posting] authority or sets memo-key
      */
-    public async updateAccountAuthority(data: UpdateAccountAuthorityOperation, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async updateAccountAuthority(data: UpdateAccountAuthorityOperation, key: PrivateKeyArg) {
         const op = await this.client.operation.updateAccountAuthority(data);
         return this.sendOperations([op], key);
     }
@@ -122,7 +122,7 @@ export class BroadcastAPI {
     /**
      * Changes authority threshold. Default is at 1. This changes how many keys/account authorities you need to successfuly sign & broadcast a transaction
      */
-    public async updateAccountAuthorityThreshold(data: UpdateAccountAuthorityThreshold, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async updateAccountAuthorityThreshold(data: UpdateAccountAuthorityThreshold, key: PrivateKeyArg) {
         const op = await this.client.operation.updateAccountAuthorityThreshold(data);
         return this.sendOperations([op], key);
     }
@@ -147,7 +147,7 @@ export class BroadcastAPI {
      * @param data Delegation options.
      * @param key Private active key of the delegator.
      */
-    public async delegateVestingShares(data: DelegateVestingSharesOperation[1], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async delegateVestingShares(data: DelegateVestingSharesOperation[1], key: PrivateKeyArg) {
         const op = this.client.operation.delegateVestingShares(data);
         return this.sendOperations([op], key);
     }
@@ -159,7 +159,7 @@ export class BroadcastAPI {
      *
      * Example for max_rc: '5 RC' or '5000000000 RCS' or RCAsset.from(5, 'RC')
      */
-    public async delegateRC(data: DelegateRCOperation, key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async delegateRC(data: DelegateRCOperation, key: PrivateKeyArg) {
         const op = this.client.operation.delegateRC(data);
         return this.sendOperations([op], key);
     }
@@ -169,20 +169,11 @@ export class BroadcastAPI {
      * @param ops List of operations to send.
      * @param key Private key(s) used to sign transaction.
      */
-    public async sendOperations(ops: Operation[], key: string | string[] | PrivateKey | PrivateKey[]) {
+    public async sendOperations(ops: Operation[], key: PrivateKeyArg) {
         const tx = await this.createTransaction(ops);
         const signedTx = this.sign(tx, key);
         return this.send(signedTx);
         // assert(result.expired === false, 'transaction expired');
-    }
-
-    /**
-     * Creates, prepares & signs transaction for broadcasting
-     * @param op One or more operation for transaction
-     */
-    public async createSignedTransaction(op: Operation | Operation[], key: string | string[] | PrivateKey | PrivateKey[]) {
-        const transaction = await this.createTransaction(op);
-        return this.sign(transaction, key);
     }
 
     /**
@@ -196,11 +187,20 @@ export class BroadcastAPI {
     }
 
     /**
+     * Creates, prepares & signs transaction for broadcasting
+     * @param op One or more operation for transaction
+     */
+    public async createSignedTransaction(op: Operation | Operation[], key: PrivateKeyArg) {
+        const transaction = await this.createTransaction(op);
+        return this.sign(transaction, key);
+    }
+
+    /**
      * Signs transaction for broadcasting
      * @param transaction Prepared transaction (i.e. via createTransaction)
      * @param key Private key(s) used to sign transaction.
      */
-    public sign(transaction: Transaction, key: string | string[] | PrivateKey | PrivateKey[]): SignedTransaction {
+    public sign(transaction: Transaction, key: PrivateKeyArg): SignedTransaction {
         const tx = transaction instanceof Transaction ? transaction : new Transaction(transaction);
         return tx.sign(key, this.client.chainId);
     }
