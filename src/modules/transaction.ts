@@ -1,9 +1,4 @@
-/**
- * @file Transaction status API helpers.
- * @author Bartłomiej (@engrave) Górnicki
- */
-
-import { Client } from '../client';
+import { ClientFetch } from '../clientFetch';
 
 export type TransactionStatus = 'unknown' | 'within_mempool' | 'within_reversible_block' | 'within_irreversible_block' | 'expired_reversible' | 'expired_irreversible' | 'too_old';
 
@@ -12,13 +7,12 @@ interface FindTransactionParams {
     expiration?: string;
 }
 export class TransactionStatusAPI {
-    constructor(readonly client: Client) {}
-
+    constructor(private readonly fetch: ClientFetch) {}
     /**
      * Convenience for calling `transaction_status_api`.
      */
     public call(method: string, params?: any) {
-        return this.client.call('transaction_status_api', method, params);
+        return this.fetch.call(`transaction_status_api.${method}`, params);
     }
 
     /**

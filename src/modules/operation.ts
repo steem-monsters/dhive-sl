@@ -1,13 +1,3 @@
-/**
- * @file Operation helper
- * @author Wolf
- */
-
-import assert from 'assert';
-import { Authority, AuthorityType } from '../chain/account';
-import { Asset, RCAsset } from '../chain/asset';
-import { PrivateKey, PublicKey } from '../chain/keys/keys';
-import { KeyRole, KeyRoleActive, KeyRoleOwner, KeyRolePosting } from '../chain/keys/utils';
 import {
     AccountUpdateOperation,
     ChangeRecoveryAccountOperation,
@@ -21,8 +11,12 @@ import {
     TransferOperation,
     VoteOperation,
 } from '../chain/operation';
-import { Client } from '../client';
-import { generateUniqueNounce } from '../utils';
+import { Asset, RCAsset } from '../chain/asset';
+import { Authority, AuthorityType } from '../chain/account';
+import { DatabaseAPI } from './database';
+import { KeyRole, KeyRoleActive, KeyRoleOwner, KeyRolePosting } from '../chain/keys';
+import { PrivateKey, PublicKey } from '../chain/keys';
+import { generateUniqueNounce } from '../utils/utils';
 
 export interface CreateAccountOptions {
     /**
@@ -97,7 +91,7 @@ export interface DelegateRCOperation {
 }
 
 export class OperationAPI {
-    constructor(readonly client: Client, private uniqueNounceKey?: string | null | false) {}
+    constructor(private readonly database: DatabaseAPI, private readonly addressPrefix: string, private uniqueNounceKey?: string | null | false) {}
 
     public comment(data: CommentOperation[1]): CommentOperation {
         return ['comment', data];
@@ -139,20 +133,17 @@ export class OperationAPI {
     }
 
     public async createTestAccount(options: CreateAccountOptions): Promise<Operation[]> {
-        assert(global.hasOwnProperty('it'), 'helper to be used only for mocha tests');
-
         const { username, metadata, creator } = options;
 
-        const prefix = this.client.addressPrefix;
         let owner: Authority, active: Authority, posting: Authority, memo_key: PublicKey;
         if (options.password) {
-            const ownerKey = PrivateKey.fromLogin(username, options.password, 'owner').createPublic(prefix);
+            const ownerKey = PrivateKey.fromLogin(username, options.password, 'owner').createPublic(this.addressPrefix);
             owner = Authority.from(ownerKey);
-            const activeKey = PrivateKey.fromLogin(username, options.password, 'active').createPublic(prefix);
+            const activeKey = PrivateKey.fromLogin(username, options.password, 'active').createPublic(this.addressPrefix);
             active = Authority.from(activeKey);
-            const postingKey = PrivateKey.fromLogin(username, options.password, 'posting').createPublic(prefix);
+            const postingKey = PrivateKey.fromLogin(username, options.password, 'posting').createPublic(this.addressPrefix);
             posting = Authority.from(postingKey);
-            memo_key = PrivateKey.fromLogin(username, options.password, 'memo').createPublic(prefix);
+            memo_key = PrivateKey.fromLogin(username, options.password, 'memo').createPublic(this.addressPrefix);
         } else if (options.auths) {
             owner = Authority.from(options.auths.owner);
             active = Authority.from(options.auths.active);
@@ -168,7 +159,7 @@ export class OperationAPI {
         fee = Asset.from(fee || 0, 'TESTS');
 
         if (fee.amount > 0) {
-            const chainProps = await this.client.database.getChainProperties();
+            const chainProps = await this.database.getChainProperties();
             const creationFee = Asset.from(chainProps.account_creation_fee);
             if (fee.amount !== creationFee.amount) {
                 throw new Error('Fee must be exactly ' + creationFee.toString());
@@ -223,7 +214,7 @@ export class OperationAPI {
      * Updates account authority and adds/removes specific account/key as [owner/active/posting] authority or sets memo-key
      */
     public async updateAccountAuthority({ method, account, authority, authorityType, role, weight = 1 }: UpdateAccountAuthorityOperation): Promise<AccountUpdateOperation> {
-        const existingAccount = await this.client.database.getAccount(account, { logErrors: false });
+        const existingAccount = await this.database.getAccount(account, { logErrors: false });
         if (!existingAccount?.name) throw new Error('Account does not exists');
 
         const accountAuthority = existingAccount[role];
@@ -249,7 +240,7 @@ export class OperationAPI {
     }
 
     public async updateAccountAuthorityThreshold({ account, threshold, role }: UpdateAccountAuthorityThreshold): Promise<AccountUpdateOperation> {
-        const existingAccount = await this.client.database.getAccount(account, { logErrors: false });
+        const existingAccount = await this.database.getAccount(account, { logErrors: false });
         if (!existingAccount?.name) throw new Error('Account does not exists');
 
         const data: AccountUpdateOperation[1] = {

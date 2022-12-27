@@ -1,8 +1,3 @@
-/**
- * @file Hivemind types
- * @license BSD-3-Clause-No-Military-License
- */
-
 export interface CommunityDetail {
     id: number;
     name: string;

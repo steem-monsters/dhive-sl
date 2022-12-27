@@ -1,9 +1,3 @@
-/**
- * @file Misc types
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
 import { Account } from './account';
 import { Asset, Price } from './asset';
 
@@ -11,36 +5,6 @@ import { Asset, Price } from './asset';
  * Large number that may be unsafe to represent natively in JavaScript.
  */
 export type Bignum = string;
-
-/**
- * Buffer wrapper that serializes to a hex-encoded string.
- */
-export class HexBuffer {
-    constructor(public buffer: Buffer) {}
-
-    /**
-     * Convenience to create a new HexBuffer, does not copy data if value passed is already a buffer.
-     */
-    public static from(value: Buffer | HexBuffer | number[] | string) {
-        if (value instanceof HexBuffer) {
-            return value;
-        } else if (value instanceof Buffer) {
-            return new HexBuffer(value);
-        } else if (typeof value === 'string') {
-            return new HexBuffer(Buffer.from(value, 'hex'));
-        } else {
-            return new HexBuffer(Buffer.from(value));
-        }
-    }
-
-    public toString(encoding: any = 'hex') {
-        return this.buffer.toString(encoding);
-    }
-
-    public toJSON() {
-        return this.toString();
-    }
-}
 
 /**
  * Chain roperties that are decided by the witnesses.

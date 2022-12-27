@@ -1,12 +1,7 @@
-/**
- * @file Hivemind API helpers.
- * @license BSD-3-Clause-No-Military-License
- */
-
 import { Account } from '../chain/account';
-import { Discussion } from '../chain/comment';
+import { ClientFetch } from '../clientFetch';
 import { CommunityDetail, Notifications } from '../chain/hivemind';
-import { Client } from '../client';
+import { Discussion } from '../chain/comment';
 
 interface PostsQuery {
     /**
@@ -78,15 +73,13 @@ interface ListCommunitiesQuery {
 }
 
 export class HivemindAPI {
-    constructor(readonly client: Client) {}
+    constructor(private readonly fetch: ClientFetch) {}
 
     /**
-     * Convenience of calling hivemind api
-     * @param method
-     * @param params
+     * Convenience for calling `bridge` api.
      */
     public call(method: string, params?: any) {
-        return this.client.call('bridge', method, params);
+        return this.fetch.call(`bridge.${method}`, params);
     }
 
     /**
@@ -110,7 +103,7 @@ export class HivemindAPI {
      * moderators, how many subscribers, etc..
      * @param options
      */
-    public getCommunity(options: CommunityQuery): Promise<CommunityDetail[]> {
+    public getCommunity(options: CommunityQuery): Promise<CommunityDetail> {
         return this.call('get_community', options);
     }
 

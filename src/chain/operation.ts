@@ -1,15 +1,9 @@
-/**
- * @file Operation types
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
-import { AuthorityType } from './account';
 import { Asset, PriceType } from './asset';
-import { SignedBlockHeader } from './block';
+import { AuthorityType } from './account';
 import { BeneficiaryRoute } from './comment';
-import { PublicKey } from './keys/keys';
-import { ChainProperties, HexBuffer } from './misc';
+import { ChainProperties } from './misc';
+import { PublicKey } from './keys';
+import { SignedBlockHeader } from './block';
 
 /**
  * Operation name.
@@ -114,7 +108,7 @@ export type VirtualOperationName = // <id>
  */
 export interface Operation {
     0: OperationName | VirtualOperationName;
-    1: { [key: string]: any };
+    1: Record<string, any>;
 }
 
 export interface AppliedOperation {
@@ -316,7 +310,7 @@ export interface CustomOperation extends Operation {
     1: {
         required_auths: string[];
         id: number; // uint16
-        data: Buffer | HexBuffer | number[];
+        data: Uint8Array | number[];
     };
 }
 
@@ -331,7 +325,7 @@ export interface CustomBinaryOperation extends Operation {
          * ID string, must be less than 32 characters long.
          */
         id: string;
-        data: Buffer | HexBuffer | number[];
+        data: Uint8Array | number[];
     };
 }
 

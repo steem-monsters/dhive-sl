@@ -1,9 +1,3 @@
-/**
- * @file Post/comment types
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
 import { Asset } from './asset';
 
 export interface Comment {

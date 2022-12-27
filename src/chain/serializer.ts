@@ -1,14 +1,7 @@
-/**
- * @file Serializer
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
 import ByteBuffer from 'bytebuffer';
-import { Asset } from './asset';
-import { PublicKey } from './keys/keys';
-import { HexBuffer } from './misc';
-import { Operation } from './operation';
+import { Asset, PriceType } from './asset';
+import { Operation, WitnessSetPropertiesOperation } from './operation';
+import { PublicKey } from './keys';
 
 export type Serializer = (buffer: ByteBuffer, data: any) => void;
 
@@ -89,9 +82,8 @@ const PublicKeySerializer = (buffer: ByteBuffer, data: PublicKey | string | null
     }
 };
 
-const BinarySerializer = (size?: number) => (buffer: ByteBuffer, data: Buffer | HexBuffer) => {
-    data = HexBuffer.from(data);
-    const len = data.buffer.length;
+const BinarySerializer = (size?: number) => (buffer: ByteBuffer, data: Uint8Array) => {
+    const len = data.length;
     if (size) {
         if (len !== size) {
             throw new Error(`Unable to serialize binary. Expected ${size} bytes, got ${len}`);
@@ -592,4 +584,62 @@ export const Types = {
     UInt64: UInt64Serializer,
     UInt8: UInt8Serializer,
     Void: VoidSerializer,
+};
+
+export interface WitnessProps {
+    account_creation_fee?: string | Asset;
+    account_subsidy_budget?: number; // uint32_t
+    account_subsidy_decay?: number; // uint32_t
+    key: PublicKey | string;
+    maximum_block_size?: number; // uint32_t
+    new_signing_key?: PublicKey | string | null;
+    hbd_exchange_rate?: PriceType;
+    hbd_interest_rate?: number; // uint16_t
+    url?: string;
+}
+function serialize(serializer: Serializer, data: any) {
+    const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+    serializer(buffer, data);
+    buffer.flip();
+    // `props` values must be hex
+    return buffer.toString('hex');
+    // return Buffer.from(buffer.toBuffer());
+}
+export const buildWitnessUpdateOp = (owner: string, props: WitnessProps): WitnessSetPropertiesOperation => {
+    const data: WitnessSetPropertiesOperation[1] = {
+        extensions: [],
+        owner,
+        props: [],
+    };
+    for (const key of Object.keys(props)) {
+        let type: Serializer;
+        switch (key) {
+            case 'key':
+            case 'new_signing_key':
+                type = Types.PublicKey;
+                break;
+            case 'account_subsidy_budget':
+            case 'account_subsidy_decay':
+            case 'maximum_block_size':
+                type = Types.UInt32;
+                break;
+            case 'hbd_interest_rate':
+                type = Types.UInt16;
+                break;
+            case 'url':
+                type = Types.String;
+                break;
+            case 'hbd_exchange_rate':
+                type = Types.Price;
+                break;
+            case 'account_creation_fee':
+                type = Types.Asset;
+                break;
+            default:
+                throw new Error(`Unknown witness prop: ${key}`);
+        }
+        data.props.push([key, serialize(type, props[key])]);
+    }
+    data.props.sort((a, b) => a[0].localeCompare(b[0]));
+    return ['witness_set_properties', data];
 };

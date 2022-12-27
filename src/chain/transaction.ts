@@ -1,17 +1,12 @@
-/**
- * @file Transaction types
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
-import { Operation } from './operation';
 import ByteBuffer from 'bytebuffer';
-import { VError } from 'verror';
-import { Types } from './serializer';
-import { PrivateKey, Signature } from './keys/keys';
-import { hash } from '../crypto';
-import { DEFAULT_CHAIN_ID } from '../constants';
+import { DEFAULT_CHAIN_ID } from '../utils/constants';
+import { Operation } from './operation';
+import { PrivateKey, Signature } from './keys';
 import { TxSignProperties } from '../modules/database';
+import { Types } from './serializer';
+import { VError } from 'verror';
+import { bytesToHex } from '@noble/hashes/utils';
+import { hash } from '../crypto/hash';
 
 interface TransactionParameters {
     ref_block_num: number;
@@ -33,9 +28,9 @@ interface SignedBlockTransactionParameters extends SignedTransactionParameters {
 
 export interface TransactionConfirmation {
     id: string; // transaction_id_type
-    block_num: number; // int32_t
-    trx_num: number; // int32_t
-    expired: boolean;
+    block_num?: number; // int32_t
+    trx_num?: number; // int32_t
+    expired?: boolean;
 }
 
 export class Transaction {
@@ -90,22 +85,24 @@ export class Transaction {
         }
     }
 
-    /**
-     * Return the sha256 transaction digest.
-     * @param chainId The chain id to use when creating the hash.
-     */
-    public digest(chainId: Buffer = DEFAULT_CHAIN_ID) {
-        const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+    private toBuffer() {
+        const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
         try {
             Types.Transaction(buffer, this);
-        } catch (cause) {
+        } catch (cause: any) {
             throw new VError({ cause, name: 'SerializationError' }, 'Unable to serialize transaction');
         }
         buffer.flip();
 
-        const transactionData = Buffer.from(buffer.toBuffer());
-        const digest = hash.sha256(Buffer.concat([chainId, transactionData]));
-        return digest;
+        return Uint8Array.from(buffer.toBuffer());
+    }
+
+    /**
+     * Return the sha256 transaction digest.
+     * @param chainId The chain id to use when creating the hash.
+     */
+    public digest(chainId: Uint8Array = DEFAULT_CHAIN_ID) {
+        return hash.sha256(new Uint8Array([...chainId, ...this.toBuffer()]));
     }
 
     /**
@@ -114,7 +111,7 @@ export class Transaction {
      * @param keys Key(s) to sign transaction with.
      * @param options Chain id and address prefix, compatible with Client
      */
-    public sign(keys: string | string[] | PrivateKey | PrivateKey[], chainId: Buffer = DEFAULT_CHAIN_ID) {
+    public sign(keys: string | string[] | PrivateKey | PrivateKey[], chainId: Uint8Array = DEFAULT_CHAIN_ID) {
         const digest = this.digest(chainId);
         const signedTransaction = new SignedTransaction({ signatures: [], ...this });
         const finalKeys: PrivateKey[] = (!Array.isArray(keys) ? [keys] : keys).map((key) => (typeof key === 'string' ? PrivateKey.from(key) : key));
@@ -127,16 +124,8 @@ export class Transaction {
         return signedTransaction;
     }
 
-    generateTrxId() {
-        const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
-        try {
-            Types.Transaction(buffer, this);
-        } catch (cause) {
-            throw new VError({ cause, name: 'SerializationError' }, 'Unable to serialize transaction');
-        }
-        buffer.flip();
-        const transactionData = Buffer.from(buffer.toBuffer());
-        return hash.sha256(transactionData).toString('hex').slice(0, 40);
+    public generateTrxId() {
+        return bytesToHex(hash.sha256(this.toBuffer())).slice(0, 40);
     }
 }
 

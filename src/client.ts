@@ -1,29 +1,25 @@
-import assert from 'assert';
-import { Blockchain, BlockchainMode, SLBlockchainStreamParameters } from './modules/blockchain';
-import { BroadcastAPI } from './modules/broadcast';
-import { DatabaseAPI } from './modules/database';
-import { HivemindAPI } from './modules/hivemind';
-import { AccountByKeyAPI } from './modules/key';
-import { RCAPI } from './modules/rc';
-import { TransactionStatusAPI } from './modules/transaction';
-import { LogLevel, log, WrappedPseudoInterval, setSingleEntryInterval } from './utils';
-import { HiveEngineClient, HiveEngineParameters } from './modules/engine/engine';
-import { BeaconAPI, BeaconParameters } from './modules/beacon';
-import { PrivateKey } from './chain/keys/keys';
-import { Memo } from './chain/memo';
-import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './constants';
-import { OperationAPI } from './modules/operation';
+import {
+    AccountByKeyAPI,
+    BeaconAPI,
+    BeaconParameters,
+    Blockchain,
+    BlockchainMode,
+    BroadcastAPI,
+    DatabaseAPI,
+    HivemindAPI,
+    OperationAPI,
+    RCAPI,
+    SLBlockchainStreamParameters,
+    TransactionStatusAPI,
+} from './modules';
 import { ClientFetch } from './clientFetch';
-import { UsageParameters, UsageTracker } from './modules/usage';
-
-type Key = string | PrivateKey | string[] | PrivateKey[];
-type TransactionCallback = (data: any, key: Key) => unknown;
-
-interface TxInQueue {
-    data: any;
-    key: Key;
-    txCall?: TransactionCallback;
-}
+import { DEFAULT_ADDRESS_PREFIX, DEFAULT_CHAIN_ID } from './utils/constants';
+import { HiveEngineClient, HiveEngineParameters } from './engine/client';
+import { LogLevel } from './utils/utils';
+import { Memo } from './chain/memo';
+import { TransactionQueue } from './utils/transactionQueue';
+import { UsageTrackerParameters } from './utils/usageTracker';
+import { hexToBytes } from '@noble/hashes/utils';
 
 /**
  * RPC Client options
@@ -32,16 +28,12 @@ interface TxInQueue {
 export interface ClientOptions {
     nodes?: string | string[];
     /**
-     * Hive chain id. Defaults to main hive network:
-     * need the new id?
-     * `beeab0de00000000000000000000000000000000000000000000000000000000`
-     *
+     * Hive chain id. Defaults to main hive network: beeab0de00000000000000000000000000000000000000000000000000000000
      */
     chainId?: string;
 
     /**
-     * Hive address prefix. Defaults to main network:
-     * `STM`
+     * Hive address prefix. Defaults to main network: `STM`
      */
     addressPrefix?: string;
 
@@ -94,7 +86,7 @@ export interface ClientOptions {
      * Configure transaction queue throttling per account
      * Default: undefined (and disabled)
      */
-    usageLimits?: UsageParameters;
+    usageLimits?: UsageTrackerParameters;
 
     /**
      * Memo prefix
@@ -191,7 +183,7 @@ export class Client {
     /**
      * Chain ID for current network.
      */
-    public readonly chainId: Buffer;
+    public readonly chainId: Uint8Array;
 
     /**
      * Address prefix for current network.
@@ -203,32 +195,21 @@ export class Client {
      */
     public readonly blockchainMode: BlockchainMode;
 
-    /**
-     * Transaction queue for customJsons
-     */
-    private transactionQueue: TxInQueue[];
-
-    /**
-     * Recursive setTimeout for transactionQueue
-     */
-    private transactionQueueInterval?: WrappedPseudoInterval;
-
-    private usageTracker?: UsageTracker;
+    public readonly transactionQueue: TransactionQueue;
 
     public readonly fetch: { hive: ClientFetch; engine: ClientFetch };
-
-    private static readonly QueueTimout = 1000;
 
     /**
      * @param options Client options.
      */
     constructor(options: ClientOptions = {}) {
         this.options = options;
-        this.transactionQueue = [];
-        this.chainId = options.chainId ? Buffer.from(options.chainId, 'hex') : DEFAULT_CHAIN_ID;
-        assert.equal(this.chainId.length, 32, 'invalid chain id');
+        this.chainId = options.chainId ? hexToBytes(options.chainId) : DEFAULT_CHAIN_ID;
+        if (this.chainId.length !== 32) throw Error('invalid chain id');
         this.addressPrefix = options.addressPrefix || DEFAULT_ADDRESS_PREFIX;
         this.blockchainMode = options.blockchainMode || 'latest';
+
+        this.transactionQueue = new TransactionQueue(options.usageLimits, options.skipTransactionQueue);
 
         this.beacon = new BeaconAPI(options.beacon, options.fetchMethod);
         this.fetch = {
@@ -236,27 +217,17 @@ export class Client {
             engine: new ClientFetch('hiveengine', this.beacon, options.engine?.nodes || HiveEngineClient.defaultNodes, options.timeout, options.nodeErrorLimit),
         };
 
-        this.database = new DatabaseAPI(this);
-        this.broadcast = new BroadcastAPI(this);
-        this.operation = new OperationAPI(this, options.uniqueNounceKey);
-        this.blockchain = new Blockchain(this, options.stream);
-        this.rc = new RCAPI(this);
-        this.hivemind = new HivemindAPI(this);
-        this.keys = new AccountByKeyAPI(this);
-        this.transaction = new TransactionStatusAPI(this);
-        this.engine = new HiveEngineClient(this, options.engine);
+        this.database = new DatabaseAPI(this.fetch.hive);
+        this.operation = new OperationAPI(this.database, this.addressPrefix, options.uniqueNounceKey);
+        this.broadcast = new BroadcastAPI(this.fetch.hive, this.operation, this.database, this.transactionQueue, this.chainId);
+
+        this.blockchain = new Blockchain(this.fetch.hive, this.database, options.stream);
+        this.rc = new RCAPI(this.fetch.hive, this.database);
+        this.hivemind = new HivemindAPI(this.fetch.hive);
+        this.keys = new AccountByKeyAPI(this.fetch.hive);
+        this.transaction = new TransactionStatusAPI(this.fetch.hive);
+        this.engine = new HiveEngineClient(this.fetch.engine, this.broadcast, options.engine);
         this.memo = new Memo(options.memoPrefix, this.addressPrefix);
-
-        if (options.usageLimits) {
-            const { limit, ms } = options.usageLimits;
-            this.usageTracker = new UsageTracker(limit, ms);
-        }
-
-        if (!options.skipTransactionQueue) {
-            this.transactionQueueInterval = setSingleEntryInterval(() => {
-                this.processTransactionQueue();
-            }, Client.QueueTimout);
-        }
 
         if (this.beacon.loadOnInitialize) {
             setTimeout(async () => {
@@ -266,8 +237,7 @@ export class Client {
     }
 
     public destroy() {
-        this.usageTracker?.stop();
-        clearInterval(this.transactionQueueInterval?.interval);
+        this.transactionQueue.stop();
         this.fetch.hive.clearInterval();
         this.fetch.engine.clearInterval();
     }
@@ -294,33 +264,5 @@ export class Client {
         },
     ) {
         return new Client({ ...options, agent: options.agent });
-    }
-
-    queueTransaction(data: any, key: Key, txCall?: TransactionCallback) {
-        this.transactionQueue.push({ data, key, txCall });
-    }
-
-    private peekTransactionAccount() {
-        const peekAccount: string | undefined = this.transactionQueue?.[0]?.data?.account;
-        return peekAccount;
-    }
-
-    private processTransactionQueue() {
-        while (true) {
-            const peekAccount = this.peekTransactionAccount();
-            if (peekAccount === undefined) return;
-
-            if (this.usageTracker?.throttle(peekAccount)) {
-                return;
-            }
-
-            const item = this.transactionQueue.shift();
-            if (item) {
-                log(`Processing queue item ${item.data.id}`, LogLevel.Info);
-                if (item.txCall) {
-                    item.txCall(item.data, item.key);
-                }
-            }
-        }
     }
 }

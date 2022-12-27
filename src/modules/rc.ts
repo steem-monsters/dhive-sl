@@ -1,23 +1,17 @@
-/**
- * @file RC API helpers.
- * @author Wolf
- * @license BSD-3-Clause-No-Military-License
- */
-
 import { Account } from '../chain/account';
+import { ClientFetch } from '../clientFetch';
+import { DatabaseAPI } from './database';
+import { Manabar, RCAccount, RCAccountExtended, RCDelegation, RCParams, RCPool } from '../chain/rc';
 import { RCAsset } from '../chain/asset';
 import { getVests } from '../chain/misc';
-import { RCAccountExtended, Manabar, RCAccount, RCDelegation, RCParams, RCPool } from '../chain/rc';
-import { Client } from '../client';
 
 export class RCAPI {
-    constructor(readonly client: Client) {}
-
+    constructor(private readonly fetch: ClientFetch, private readonly database: DatabaseAPI) {}
     /**
-     * Convenience for calling `rc_api`.
+     * Convenience for calling `rc_api` api.
      */
     public call(method: string, params?: any) {
-        return this.client.call('rc_api', method, params);
+        return this.fetch.call(`rc_api.${method}`, params);
     }
 
     /**
@@ -158,7 +152,7 @@ export class RCAPI {
      * Makes a API call and returns the VP mana-data for a specified username
      */
     public async getVPMana(username: string): Promise<Manabar> {
-        const account = await this.client.database.getAccount(username, { logErrors: false });
+        const account = await this.database.getAccount(username, { logErrors: false });
         return account ? this.calculateVPMana(account) : { current_mana: 0, max_mana: 0, percentage: 0 };
     }
 

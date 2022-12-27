@@ -1,12 +1,6 @@
-/**
- * @file Database API helpers.
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
-import { Client } from '../client';
-import { iteratorStream, log, sleep, timeout } from '../utils';
-import fs from 'fs';
+import { ClientFetch } from '../clientFetch';
+import { DatabaseAPI } from './database';
+import { LogLevel, log, sleep, timeout } from '../utils/utils';
 import { SignedBlock } from '../chain/block';
 
 export type BlockchainMode = 'irreversible' | 'latest';
@@ -30,6 +24,7 @@ export interface BlockchainStreamOptions {
 export interface SLBlockchainStreamOptions {
     mode: BlockchainMode;
     blocksBehindHead: number;
+    fs?: any;
     saveState: (state: { lastBlock: number; lastVopBlock: number }) => any;
     loadState: () => any;
     stateFile: string; // 'state.json';
@@ -47,7 +42,7 @@ export class Blockchain {
     private lastBlock: number;
     private lastVopBlock: number;
 
-    constructor(readonly client: Client, streamParameters: SLBlockchainStreamParameters = {}) {
+    constructor(private readonly fetch: ClientFetch, private readonly database: DatabaseAPI, streamParameters: SLBlockchainStreamParameters = {}) {
         this.streamOptions = {
             mode: 'latest',
             blocksBehindHead: 0,
@@ -59,6 +54,7 @@ export class Blockchain {
             onVirtualOp: null,
             onBehindBlocks: null,
             replayBatchSize: null,
+            fs: null,
             ...streamParameters,
         };
         this.lastBlock = 0;
@@ -69,7 +65,7 @@ export class Blockchain {
      * Get latest block number.
      */
     public async getCurrentBlockNum(mode: BlockchainMode = 'irreversible') {
-        const props = await this.client.database.getDynamicGlobalProperties();
+        const props = await this.database.getDynamicGlobalProperties();
         switch (mode) {
             case 'irreversible':
                 return props.last_irreversible_block_num;
@@ -82,19 +78,19 @@ export class Blockchain {
      * Get latest block header.
      */
     public async getCurrentBlockHeader(mode?: BlockchainMode) {
-        return this.client.database.getBlockHeader(await this.getCurrentBlockNum(mode));
+        return this.database.getBlockHeader(await this.getCurrentBlockNum(mode));
     }
 
     /**
      * Get latest block.
      */
     public async getCurrentBlock(mode?: BlockchainMode) {
-        return this.client.database.getBlock(await this.getCurrentBlockNum(mode));
+        return this.database.getBlock(await this.getCurrentBlockNum(mode));
     }
 
     public async getNextBlock(mode?: BlockchainMode) {
         try {
-            const result = await this.client.database.getDynamicGlobalProperties();
+            const result = await this.database.getDynamicGlobalProperties();
 
             if (!result) {
                 setTimeout(() => this.getNextBlock(), 1000);
@@ -107,7 +103,7 @@ export class Blockchain {
 
             // We are 20+ blocks behind!
             if (currentBlockNum >= this.lastBlock + 20) {
-                log('Streaming is ' + (currentBlockNum - this.lastBlock) + ' blocks behind!', 1, 'Red');
+                log('Streaming is ' + (currentBlockNum - this.lastBlock) + ' blocks behind!', LogLevel.Warning, 'Red');
 
                 if (this.streamOptions.onBehindBlocks) this.streamOptions.onBehindBlocks(currentBlockNum - this.lastBlock);
             }
@@ -121,12 +117,12 @@ export class Blockchain {
                         if (consecutiveBlock > currentBlockNum) {
                             break;
                         }
-                        promises.push(this.client.database.getBlock(consecutiveBlock));
+                        promises.push(this.database.getBlock(consecutiveBlock));
                     }
                     const blocks: SignedBlock[] = await Promise.all(promises);
                     for (const block of blocks) {
                         if (!block || !block.transactions) {
-                            log('Error loading block batch that contains [' + currentBlockNum + ']', 4);
+                            log('Error loading block batch that contains [' + currentBlockNum + ']', LogLevel.Debug);
                             await timeout(1000);
                             return;
                         }
@@ -142,7 +138,7 @@ export class Blockchain {
                 }
             }
         } catch (e: any) {
-            log(`Error getting next block: ${e}`, 1, 'Red');
+            log(`Error getting next block: ${e}`, LogLevel.Error, 'Red');
         }
 
         // Attempt to load the next block after a 1 second delay (or faster if we're behind and need to catch up)
@@ -170,13 +166,13 @@ export class Blockchain {
         if (last_irreversible_block_num <= this.lastVopBlock) return;
 
         const blockNum = !this.lastVopBlock || isNaN(this.lastVopBlock) ? last_irreversible_block_num : this.lastVopBlock + 1;
-        const result = await this.client.database.getOperations(blockNum);
+        const result = await this.database.getOperations(blockNum);
 
         if (!result || !Array.isArray(result)) return;
 
         const ops = result.filter((op) => op.virtual_op > 0);
 
-        log(`Loading virtual ops in block ${blockNum}, count: ${ops.length}`, 4);
+        log(`Loading virtual ops in block ${blockNum}, count: ${ops.length}`, LogLevel.Debug);
 
         for (let i = 0; i < ops.length; i++) await this.streamOptions.onVirtualOp(ops[i], blockNum);
 
@@ -190,17 +186,20 @@ export class Blockchain {
     }
 
     async processBlock(blockNum: number, currentBlockNum: number) {
-        const block = await this.client.database.getBlock(blockNum);
+        const block = await this.database.getBlock(blockNum);
         return this.processBlockHelper(block, blockNum, currentBlockNum);
     }
 
     async processBlockHelper(block: SignedBlock, blockNum: number, currentBlockNum: number) {
         // Log every 1000th block loaded just for easy parsing of logs, or every block depending on logging level
-        log(`Processing block [${blockNum}], Head Block: ${currentBlockNum}, Blocks to head: ${currentBlockNum - blockNum}`, blockNum % 1000 == 0 ? 1 : 4);
+        log(
+            `Processing block [${blockNum}], Head Block: ${currentBlockNum}, Blocks to head: ${currentBlockNum - blockNum}`,
+            blockNum % 1000 == 0 ? LogLevel.Warning : LogLevel.Debug,
+        );
 
         if (!block || !block.transactions) {
             // Block couldn't be loaded...this is typically because it hasn't been created yet
-            log('Error loading block [' + blockNum + ']', 4);
+            log('Error loading block [' + blockNum + ']', LogLevel.Debug);
             await timeout(1000);
             return;
         }
@@ -220,7 +219,7 @@ export class Blockchain {
                     try {
                         await this.streamOptions.onOp(op, blockNum, block.block_id, block.previous, block.transaction_ids[i], block_time, i);
                     } catch (e: any) {
-                        log(`Error processing transaction [${block.transaction_ids[i]}]: ${e}`, 1, 'Red');
+                        log(`Error processing transaction [${block.transaction_ids[i]}]: ${e}`, LogLevel.Error, 'Red');
                     }
                 }
             }
@@ -236,18 +235,20 @@ export class Blockchain {
     }
 
     async loadState() {
+        if (!this.streamOptions.fs) throw Error('Missing fs parameter');
         // Check if state has been saved to disk, in which case load it
-        if (fs.existsSync(this.streamOptions.stateFile)) {
-            const state = JSON.parse(fs.readFileSync(this.streamOptions.stateFile).toString() || '{}');
-            log('Restored saved state: ' + JSON.stringify(state));
+        if (this.streamOptions.fs.existsSync(this.streamOptions.stateFile)) {
+            const state = JSON.parse(this.streamOptions.fs.readFileSync(this.streamOptions.stateFile).toString() || '{}');
+            log('Restored saved state: ' + JSON.stringify(state), LogLevel.Info);
             return state;
         }
     }
 
     saveState(state) {
+        if (!this.streamOptions.fs) throw Error('Missing fs parameter');
         // Save the last block read to disk
-        fs.writeFile(this.streamOptions.stateFile, JSON.stringify(state || {}), function (e: any) {
-            if (e) log(e);
+        this.streamOptions.fs.writeFile(this.streamOptions.stateFile, JSON.stringify(state || {}), function (e: any) {
+            if (e) log(e, LogLevel.Error);
         });
     }
 
@@ -279,47 +280,5 @@ export class Blockchain {
             await sleep(interval * 1000);
             current = await this.getCurrentBlockNum(options.mode);
         }
-    }
-
-    /**
-     * Return a stream of block numbers, accepts same parameters as {@link getBlockNumbers}.
-     */
-    public getBlockNumberStream(options?: BlockchainStreamOptions | number) {
-        return iteratorStream(this.getBlockNumbers(options));
-    }
-
-    /**
-     * Return a asynchronous block iterator, accepts same parameters as {@link getBlockNumbers}.
-     */
-    public async *getBlocks(options?: BlockchainStreamOptions | number) {
-        for await (const num of this.getBlockNumbers(options)) {
-            yield await this.client.database.getBlock(num);
-        }
-    }
-
-    /**
-     * Return a stream of blocks, accepts same parameters as {@link getBlockNumbers}.
-     */
-    public getBlockStream(options?: BlockchainStreamOptions | number) {
-        return iteratorStream(this.getBlocks(options));
-    }
-
-    /**
-     * Return a asynchronous operation iterator, accepts same parameters as {@link getBlockNumbers}.
-     */
-    public async *getOperations(options?: BlockchainStreamOptions | number) {
-        for await (const num of this.getBlockNumbers(options)) {
-            const operations = await this.client.database.getOperations(num);
-            for (const operation of operations) {
-                yield operation;
-            }
-        }
-    }
-
-    /**
-     * Return a stream of operations, accepts same parameters as {@link getBlockNumbers}.
-     */
-    public getOperationsStream(options?: BlockchainStreamOptions | number) {
-        return iteratorStream(this.getOperations(options));
     }
 }
