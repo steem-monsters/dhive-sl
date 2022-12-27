@@ -1,6 +1,8 @@
-import { PrivateKey, PublicKey, Signature, Transaction } from '../src';
+import { BroadcastAPI, CustomJsonOperation, CustomOperation, PrivateKey, PublicKey, Signature, Transaction } from '../src';
+import { TEST_CLIENT } from './common';
 import { generateUniqueNounce } from '../src/utils/utils';
 import { hash } from '../src/crypto/hash';
+import { hexToBytes } from '@noble/hashes/utils';
 
 describe('crypto', function () {
     const testnetPrefix = 'STM';
@@ -12,8 +14,8 @@ describe('crypto', function () {
         private: '5K2yDAd9KAZ3ZitBsAPyRka9PLFemUrbcL6UziZiPaw2c6jCeLH',
         public: 'STM8QykigLRi9ZUcNy1iXGY3KjRuCiLM8Ga49LHti1F8hgawKFc3K',
     };
-    const mainPairPub = Buffer.from('03d0519ddad62bd2a833bee5dc04011c08f77f66338c38d99c685dee1f454cd1b8', 'hex');
-
+    const mainPairPub = hexToBytes('03d0519ddad62bd2a833bee5dc04011c08f77f66338c38d99c685dee1f454cd1b8');
+    const nullKey = 'STM1111111111111111111111111111111114T1Anm';
     const testSig = '202c52188b0ecbc26c766fe6d3ec68dac58644f43f43fc7d97da122f76fa028f98691dd48b44394bdd8cecbbe66e94795dcf53291a1ef7c16b49658621273ea68e';
     const testKey = PrivateKey.from('5K2yDAd9KAZ3ZitBsAPyRka9PLFemUrbcL6UziZiPaw2c6jCeLH');
     const testPubKey = testKey.createPublic();
@@ -28,6 +30,9 @@ describe('crypto', function () {
         expect(k2.toString()).toEqual(k3.toString());
         const k4 = PublicKey.from(testnetPair.public);
         expect(k4.toString()).toEqual(testnetPair.public);
+        const k5 = PublicKey.from(nullKey);
+        expect(k5.toString()).toEqual(nullKey);
+        expect(k5.key).toEqual(new Uint8Array(33));
     });
 
     it('should decode private keys', function () {
@@ -95,13 +100,8 @@ describe('crypto', function () {
     });
 
     it('should sign and verify transaction', async function () {
-        const tx = new Transaction({
-            ref_block_num: 1234,
-            ref_block_prefix: 1122334455,
-            expiration: '2017-07-15T16:51:19',
-            extensions: ['long-pants'],
-            operations: [['vote', { voter: 'foo', author: 'bar', permlink: 'baz', weight: 10000 }]],
-        });
+        const op: CustomJsonOperation = ['custom_json', { id: 'test', json: JSON.stringify({}), required_auths: [], required_posting_auths: ['test'] }];
+        const tx = await TEST_CLIENT.broadcast.createTransaction(op);
         const signedTx = tx.sign(testKey);
         const txDigest = signedTx.digest();
 

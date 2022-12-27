@@ -46,7 +46,6 @@ describe('compatability', function () {
     //     const decoded = await memo.decode(encoded, privateKey);
     //     expect(decoded).toEqual(baseMemo);
     //     const hivejsEncoded = hivejs.memo.encode(privateKey2, publicKey, `#${baseMemo}`, testNonce);
-    //     console.log(hivejsEncoded);
     //     const hivejsDecoded = hivejs.memo.decode(privateKey, hivejsEncoded);
     //     expect(hivejsDecoded).toEqual(`#${baseMemo}`);
     //     const mixedDecoded1 = await memo.decode(hivejsEncoded, privateKey);

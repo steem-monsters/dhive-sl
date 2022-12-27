@@ -6,16 +6,16 @@ import { sha512 } from '@noble/hashes/sha512';
 // import { binaryStringToBytes } from './utils';
 
 export const hash = {
-    ripemd160(input: Buffer | Uint8Array | string) {
+    ripemd160(input: Uint8Array | string) {
         return ripemd160(input);
     },
-    sha256(input: Buffer | Uint8Array | string) {
+    sha256(input: Uint8Array | string) {
         return sha256(input);
     },
-    doubleSha256(input: Buffer | Uint8Array | string) {
+    doubleSha256(input: Uint8Array | string) {
         return hash.sha256(hash.sha256(input));
     },
-    sha512(input: Buffer | Uint8Array | string) {
+    sha512(input: Uint8Array | string) {
         return sha512(input);
     },
 };
@@ -25,13 +25,13 @@ export const hash = {
 // };
 
 // export const cryptojs = {
-//     decrypt: (message: string | TypedArray, key: string | Buffer | TypedArray, iv?: string | Buffer | TypedArray) => {
+//     decrypt: (message: string | TypedArray, key: string | TypedArray, iv?: string | TypedArray) => {
 //         const binary = toBinaryBuffer(message);
 //         const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
 //         // decipher.setAutoPadding(true)
 //         return Buffer.concat([decipher.update(binary), decipher.final()]);
 //     },
-//     encrypt: (message: string | TypedArray, key: string | Buffer | TypedArray, iv?: string | Buffer | TypedArray) => {
+//     encrypt: (message: string | TypedArray, key: string | TypedArray, iv?: string | TypedArray) => {
 //         const binary = toBinaryBuffer(message);
 //         const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
 //         // cipher.setAutoPadding(true)

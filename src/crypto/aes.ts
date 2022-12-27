@@ -1,7 +1,8 @@
 // source: https://github.com/ethereum/js-ethereum-cryptography/blob/master/src/aes.ts
 
-import { concatBytes, equalsBytes, hexToBytes } from './utils';
+import { concatBytes } from '@noble/hashes/utils';
 import { crypto } from '@noble/hashes/crypto';
+import { equalsBytes, hexToBytes } from './utils';
 
 function validateOpt(key: Uint8Array, iv: Uint8Array, mode: string) {
     if (!mode.startsWith('aes-')) {

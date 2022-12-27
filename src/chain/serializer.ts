@@ -76,7 +76,7 @@ const DateSerializer = (buffer: ByteBuffer, data: string) => {
 
 const PublicKeySerializer = (buffer: ByteBuffer, data: PublicKey | string | null) => {
     if (data === null || (typeof data === 'string' && data.endsWith('1111111111111111111111111111111114T1Anm'))) {
-        buffer.append(Buffer.alloc(33, 0));
+        buffer.append(new Uint8Array(33));
     } else {
         buffer.append(PublicKey.from(data).key);
     }
@@ -603,7 +603,6 @@ function serialize(serializer: Serializer, data: any) {
     buffer.flip();
     // `props` values must be hex
     return buffer.toString('hex');
-    // return Buffer.from(buffer.toBuffer());
 }
 export const buildWitnessUpdateOp = (owner: string, props: WitnessProps): WitnessSetPropertiesOperation => {
     const data: WitnessSetPropertiesOperation[1] = {

@@ -1,8 +1,10 @@
 import { CURVE, Point, Signature as SecpSignature, getPublicKey, signSync, utils, verify } from '@noble/secp256k1';
 import { Hex } from '../chain';
 import { utils as _utils } from '@noble/secp256k1';
-import { assertBool, assertBytes, hexToBytes, toHex } from './utils';
+import { assertBool, assertBytes, hexToBytes } from './utils';
+import { bytesToHex } from '@noble/hashes/utils';
 import { hmac } from '@noble/hashes/hmac';
+import { isArrayEqual } from '../utils/utils';
 import { sha256 } from '@noble/hashes/sha256';
 
 // Enable sync API for noble-secp256k1
@@ -23,7 +25,7 @@ function hexToNumber(hex: string): bigint {
 }
 
 // Copy-paste from secp256k1, maybe export it?
-export const bytesToNumber = (bytes: Uint8Array) => hexToNumber(toHex(bytes));
+export const bytesToNumber = (bytes: Uint8Array) => hexToNumber(bytesToHex(bytes));
 export const numberToHex = (num: number | bigint) => num.toString(16).padStart(64, '0');
 export const numberToBytes = (num: number | bigint) => hexToBytes(numberToHex(num));
 
@@ -73,6 +75,7 @@ export function publicKeyCreate(privateKey: Uint8Array, compressed = true, out?:
 
 export function publicKeyVerify(publicKey: Uint8Array): boolean {
     assertBytes(publicKey, 33, 65);
+    if (isArrayEqual(publicKey, new Uint8Array(33))) return true;
     try {
         Point.fromHex(publicKey);
         return true;

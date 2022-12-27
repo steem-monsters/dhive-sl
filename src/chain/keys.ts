@@ -61,18 +61,23 @@ export class PublicKey {
     public point: EccPoint;
     public uncompressedKey: Uint8Array;
 
+    private isNullKey: boolean;
+
     constructor(key: Uint8Array, public readonly prefix = DEFAULT_ADDRESS_PREFIX) {
-        if (!publicKeyVerify(key)) throw Error('invalid public key');
+        if (!publicKeyVerify(key)) if (!this.isNullKey) throw Error('invalid public key');
 
         this.key = key;
-        this.point = this.decodePoint();
-        this.uncompressedKey = this.point.getEncoded(false);
+        this.isNullKey = isArrayEqual(this.key, new Uint8Array(33));
+        if (!this.isNullKey) {
+            this.point = this.decodePoint();
+            this.uncompressedKey = this.point.getEncoded(false);
+        }
     }
 
     /**
      * Create a new instance.
      */
-    public static from(value: string | PublicKey | Uint8Array | Buffer) {
+    public static from(value: string | PublicKey | Uint8Array) {
         if (value instanceof PublicKey) {
             return value;
         } else if (typeof value === 'string') {
@@ -163,7 +168,7 @@ export class PrivateKey {
     /**
      * Convenience to create a new instance from WIF string or buffer.
      */
-    public static from(value: string | Buffer | PrivateKey) {
+    public static from(value: string | Uint8Array | PrivateKey) {
         if (typeof value === 'string') {
             return PrivateKey.fromString(value);
         } else if (value instanceof PrivateKey) {

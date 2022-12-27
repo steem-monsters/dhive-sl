@@ -1,6 +1,6 @@
 import ByteBuffer from 'bytebuffer';
 import { Serializer, Types } from '../src';
-import { hexToBytes } from '@noble/hashes/utils';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 /*
  Serializer tests in the format:
@@ -13,7 +13,7 @@ function serialize(serializer: Serializer, data: any) {
     const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
     serializer(buffer, data);
     buffer.flip();
-    return Buffer.from(buffer.toBuffer()).toString('hex');
+    return bytesToHex(Uint8Array.from(buffer.toBuffer()));
 }
 
 describe('serializers', function () {

@@ -8,7 +8,6 @@ const Long = ByteBuffer.Long;
 const assertBool = assert.bool;
 const assertBytes = assert.bytes;
 export { assertBool, assertBytes };
-export { bytesToHex, bytesToHex as toHex, concatBytes, createView, utf8ToBytes } from '@noble/hashes/utils';
 
 // buf.toString('utf8') -> bytesToUtf8(buf)
 export function bytesToUtf8(data: Uint8Array): string {

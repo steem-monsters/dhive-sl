@@ -13,7 +13,7 @@ export const MIRROR_CLIENT = Client.testnet();
 let testAccounts;
 
 export async function readFile(filename: string) {
-    return new Promise<Buffer>((resolve, reject) => {
+    return new Promise<Uint8Array>((resolve, reject) => {
         fs.readFile(filename, (error, result) => {
             if (error) {
                 reject(error);
@@ -24,7 +24,7 @@ export async function readFile(filename: string) {
     });
 }
 
-export async function writeFile(filename: string, data: Buffer) {
+export async function writeFile(filename: string, data: Uint8Array) {
     return new Promise<void>((resolve, reject) => {
         fs.writeFile(filename, data, (error) => {
             if (error) {

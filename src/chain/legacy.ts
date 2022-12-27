@@ -196,7 +196,7 @@ const parsePublicKey = (b, publicKey?: PublicKey) => {
         const b_copy = b.copy(b.offset, b.offset + 33);
         b.skip(33);
 
-        return PublicKey.from(Buffer.from(b_copy.toBinary(), 'binary'));
+        return PublicKey.from(binaryStringToBytes(b_copy.toString('binary')));
     }
 };
 
@@ -232,7 +232,7 @@ export const Types = {
             let b_copy;
             const len = b.readVarint32();
             (b_copy = b.copy(b.offset, b.offset + len)), b.skip(len);
-            return Buffer.from(b_copy.toBinary(), 'binary');
+            return b_copy.toString('binary');
         },
         appendByteBuffer(b, object) {
             b.writeVarint32(object.length);
@@ -241,7 +241,7 @@ export const Types = {
         },
         fromObject(object) {
             validations.required(object);
-            return Buffer.from(object);
+            return bytesToBinaryString(object);
         },
     },
     publicKey: {

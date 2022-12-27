@@ -4,7 +4,7 @@ import base58 from 'bs58';
 import { DEFAULT_ADDRESS_PREFIX } from '../utils/constants';
 import { PrivateKey, PublicKey } from './keys';
 import { aes } from '../crypto/aes';
-import { binaryStringToBytes, bytesToBinaryString, isTypedArray, uniqueNonce } from '../crypto/utils';
+import { binaryStringToBytes, bytesToBinaryString, bytesToUtf8, isTypedArray, uniqueNonce } from '../crypto/utils';
 import { hash } from '../crypto/hash';
 
 const Long = ByteBuffer.Long;
@@ -43,7 +43,7 @@ export class Memo {
         } catch (e) {
             mbuf.reset();
             // Sender did not length-prefix the memo
-            memo = Buffer.from(mbuf.toString('binary'), 'binary').toString('utf-8');
+            memo = bytesToUtf8(binaryStringToBytes(mbuf.toString('binary')));
             return `${memoPrefix ? this.memoPrefix : ''}${memo}`;
         }
     }
@@ -78,7 +78,7 @@ export class Memo {
         if (!memo || !this.regexPattern.test(memo)) return [];
         memo = memo.substring(1);
 
-        const { from, to } = legacy.EncryptedMemoSerializer.fromBuffer(Buffer.from(base58.decode(memo) as any, 'binary'));
+        const { from, to } = legacy.EncryptedMemoSerializer.fromBuffer(Uint8Array.from(base58.decode(memo)));
 
         return [from.toString(), to.toString()];
     }

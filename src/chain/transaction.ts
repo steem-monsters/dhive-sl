@@ -5,7 +5,7 @@ import { PrivateKey, Signature } from './keys';
 import { TxSignProperties } from '../modules/database';
 import { Types } from './serializer';
 import { VError } from 'verror';
-import { bytesToHex } from '@noble/hashes/utils';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 import { hash } from '../crypto/hash';
 
 interface TransactionParameters {
@@ -61,7 +61,7 @@ export class Transaction {
      */
     public static from(txSignProperties: TxSignProperties, ops: Operation[], expireTime = Transaction.expireTime) {
         const ref_block_num = txSignProperties.head_block_number & 0xffff;
-        const ref_block_prefix = Buffer.from(txSignProperties.head_block_id, 'hex').readUInt32LE(4);
+        const ref_block_prefix = new Uint32Array(hexToBytes(txSignProperties.head_block_id).buffer, 4, 1)[0];
         const expiration = new Date(txSignProperties.time + expireTime).toISOString().slice(0, -5);
 
         return new Transaction({
@@ -76,7 +76,7 @@ export class Transaction {
     /**
      * Returns the public key a signature was signed with
      */
-    public recoverKeyFromSignature(signature: string, chainId?: Buffer) {
+    public recoverKeyFromSignature(signature: string, chainId?: Uint8Array) {
         try {
             const sig = Signature.fromString(signature);
             return new Signature(sig.data, sig.recid).recover(this.digest(chainId));
