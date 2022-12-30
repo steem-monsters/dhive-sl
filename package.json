@@ -1,6 +1,6 @@
 {
     "name": "dhive-sl",
-    "version": "2.0.0-prerelease.3",
+    "version": "2.0.0-prerelease.4",
     "description": "Cient library for the Hive blockchain.",
     "main": "dist/dhive-sl.js",
     "module": "dist/dhive-sl.esm.js",
