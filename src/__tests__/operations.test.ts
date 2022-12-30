@@ -1,4 +1,4 @@
-import * as ds from '../src';
+import * as ds from '..';
 
 const { Asset, PrivateKey, Client } = ds;
 

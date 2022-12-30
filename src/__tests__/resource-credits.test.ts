@@ -1,5 +1,5 @@
-import { RCAccount } from '../src/chain/rc';
-import { RCAsset } from '../src/chain/asset';
+import { RCAccount } from '../chain/rc';
+import { RCAsset } from '../chain/asset';
 import { TEST_CLIENT } from './common';
 
 describe('rc_api', function () {

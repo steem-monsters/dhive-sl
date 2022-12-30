@@ -1,5 +1,5 @@
-import ByteBuffer from 'bytebuffer';
-import { Serializer, Types } from '../src';
+import { ByteBuffer } from '../crypto/bytebuffer';
+import { Serializer, Types } from '..';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 /*
@@ -10,7 +10,7 @@ import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 const serializerTests = require('./serializer-tests.json');
 
 function serialize(serializer: Serializer, data: any) {
-    const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+    const buffer = new ByteBuffer();
     serializer(buffer, data);
     buffer.flip();
     return bytesToHex(Uint8Array.from(buffer.toBuffer()));

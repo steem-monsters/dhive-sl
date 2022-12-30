@@ -1,6 +1,6 @@
 import { ClientFetch } from '../clientFetch';
 import { DatabaseAPI } from './database';
-import { LogLevel, log, sleep, timeout } from '../utils/utils';
+import { LogLevel, log, timeout } from '../utils/utils';
 import { SignedBlock } from '../chain/block';
 
 export type BlockchainMode = 'irreversible' | 'latest';
@@ -277,7 +277,7 @@ export class Blockchain {
                 }
                 yield seen++;
             }
-            await sleep(interval * 1000);
+            await timeout(interval * 1000);
             current = await this.getCurrentBlockNum(options.mode);
         }
     }

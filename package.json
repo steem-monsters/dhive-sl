@@ -1,6 +1,6 @@
 {
     "name": "dhive-sl",
-    "version": "2.0.0-prerelease.1",
+    "version": "2.0.0-prerelease.3",
     "description": "Cient library for the Hive blockchain.",
     "main": "dist/dhive-sl.js",
     "module": "dist/dhive-sl.esm.js",
@@ -19,9 +19,7 @@
         "build:clear": "rimraf dist && rimraf tsconfig.tsbuildinfo",
         "lint": "eslint src --ext .ts",
         "lint:fix": "eslint src --ext .ts --fix",
-        "start": "node -r dotenv/config dist/index.js",
         "test": "LOGGING_LEVEL=0 jest",
-        "test:int": "NODE_ENV=test jest -c jest.config.int.js --runInBand --detectOpenHandles",
         "test:unit": "ts-jest -c jest.config.ts --watchAll --maxWorkers=1",
         "test:watch": "ts-jest -c jest.config.int.js --silent --watchAll --detectOpenHandles",
         "example:beacon": "NODE_ENV=development ts-node-dev --tree-kill --no-notify --respawn --transpile-only src/examples/beacon.example.ts",
@@ -34,9 +32,9 @@
         "@noble/secp256k1": "^1.7.0",
         "bigi": "^1.4.2",
         "bs58": "^5.0.0",
-        "bytebuffer": "^5.0.1",
         "cross-fetch": "^3.1.5",
         "jsbi": "^4.3.0",
+        "long": "~3.2.0",
         "secure-random": "^1.1.2",
         "verror": "^1.10.1"
     },

@@ -1,4 +1,4 @@
-import ByteBuffer from 'bytebuffer';
+import { ByteBuffer } from '../crypto/bytebuffer';
 import { DEFAULT_CHAIN_ID } from '../utils/constants';
 import { Operation } from './operation';
 import { PrivateKey, Signature } from './keys';
@@ -86,14 +86,13 @@ export class Transaction {
     }
 
     private toBuffer() {
-        const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+        const buffer = new ByteBuffer();
         try {
             Types.Transaction(buffer, this);
         } catch (cause: any) {
             throw new VError({ cause, name: 'SerializationError' }, 'Unable to serialize transaction');
         }
         buffer.flip();
-
         return Uint8Array.from(buffer.toBuffer());
     }
 

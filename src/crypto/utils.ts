@@ -1,39 +1,20 @@
-import ByteBuffer from 'bytebuffer';
+import Long from 'long';
 import assert from '@noble/hashes/_assert';
 import secureRandom from 'secure-random';
 import { hexToBytes as _hexToBytes } from '@noble/hashes/utils';
 import { randomBytes } from '@noble/hashes/utils';
-const Long = ByteBuffer.Long;
 
 const assertBool = assert.bool;
 const assertBytes = assert.bytes;
 export { assertBool, assertBytes };
 
-// buf.toString('utf8') -> bytesToUtf8(buf)
-export function bytesToUtf8(data: Uint8Array): string {
-    if (!(data instanceof Uint8Array)) {
-        throw new TypeError(`bytesToUtf8 expected Uint8Array, got ${typeof data}`);
-    }
+export const bytesToUtf8 = (data: Uint8Array) => {
+    if (!(data instanceof Uint8Array)) throw new TypeError(`bytesToUtf8 expected Uint8Array, got ${typeof data}`);
+
     return new TextDecoder().decode(data);
-}
+};
 
-export function hexToBytes(data: string): Uint8Array {
-    const sliced = data.startsWith('0x') ? data.substring(2) : data;
-    return _hexToBytes(sliced);
-}
-
-// buf.equals(buf2) -> equalsBytes(buf, buf2)
-export function equalsBytes(a: Uint8Array, b: Uint8Array): boolean {
-    if (a.length !== b.length) {
-        return false;
-    }
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) {
-            return false;
-        }
-    }
-    return true;
-}
+export const hexToBytes = (data: string) => _hexToBytes(data.startsWith('0x') ? data.substring(2) : data);
 
 /**
  * Returns an array of incrementing values starting at `begin` and incrementing by one for `length`.
@@ -45,36 +26,15 @@ export function equalsBytes(a: Uint8Array, b: Uint8Array): boolean {
  */
 // const range = (length: number, begin = 0) => Array.from({ length }, (_, index) => begin + index);
 
-// source: https://github.com/bitauth/libauth/blob/master/src/lib/format/bin-string.ts#L25-L36
-export const bytesToBinaryString = (bytes: Uint8Array) => {
-    // Uses fromCharCode to support Buffer.from(bytes, 'binary) format instead of 11011100 format
-    // bytes.reduce((str, byte) => str + byte.toString(2).padStart(8, '0'), '');
-    return bytes.reduce((str, byte) => str + String.fromCharCode(byte), '');
-};
+export const bytesToBinaryString = (bytes: Uint8Array) => bytes.reduce((str, byte) => str + String.fromCharCode(byte), '');
 
 export const binaryStringToBytes = (binaryDigits: string) => {
-    //  splityEvery => range(Math.ceil(input.length / chunkLength))
-    // .map((index) => index * chunkLength)
-    // .map((begin) => input.slice(begin, begin + chunkLength));
-    // Uint8Array.from(splitEvery(binaryDigits, 8).map((byteString) => parseInt(byteString, 2)));
     const byteArray: any[] = [];
-
     for (let i = 0; i < binaryDigits.length; ++i) {
-        // if (i + offset >= dst.length || i >= src.length) {
-        //     break;
-        // }
         byteArray.push(binaryDigits.charCodeAt(i) & 255);
     }
     return new Uint8Array(byteArray);
 };
-
-// Internal utils
-export function wrapHash(hash: (msg: Uint8Array) => Uint8Array) {
-    return (msg: Uint8Array) => {
-        assert.bytes(msg);
-        return hash(msg);
-    };
-}
 
 export const crypto: { node?: any; web?: Crypto } = (() => {
     const webCrypto = typeof self === 'object' && 'crypto' in self ? self.crypto : undefined;
@@ -85,31 +45,18 @@ export const crypto: { node?: any; web?: Crypto } = (() => {
     };
 })();
 
-// https://github.com/ethereum/js-ethereum-cryptography/blob/master/src/random.ts
-
-export function getRandomBytesSync(bytes: number): Uint8Array {
-    return randomBytes(bytes);
-}
-
-export async function getRandomBytes(bytes: number): Promise<Uint8Array> {
-    return randomBytes(bytes);
-}
+export const getRandomBytesSync = (bytes: number): Uint8Array => randomBytes(bytes);
+export const getRandomBytes = async (bytes: number): Promise<Uint8Array> => randomBytes(bytes);
 
 /** Returns unique 64 bit unsigned number string. Being time based, this is careful to never choose the same nonce twice. This value could be recorded in the blockchain for a long time.
  */
 export const uniqueNonce = (): string => {
     if (unique_nonce_entropy === null) {
-        const b: any = secureRandom.randomUint8Array(2);
-        // @ts-ignore
-        unique_nonce_entropy = parseInt((b[0] << 8) | b[1], 10);
+        const b = secureRandom.randomUint8Array(2);
+        unique_nonce_entropy = parseInt(String((b[0] << 8) | b[1]), 10);
     }
-    let long = Long.fromNumber(Date.now());
     const entropy = ++unique_nonce_entropy % 0xffff;
-    // console.log('uniqueNonce date\t', ByteBuffer.allocate(8).writeUint64(long).toHex(0))
-    // console.log('uniqueNonce entropy\t', ByteBuffer.allocate(8).writeUint64(Long.fromNumber(entropy)).toHex(0))
-    long = long.shiftLeft(16).or(Long.fromNumber(entropy));
-    // console.log('uniqueNonce final\t', ByteBuffer.allocate(8).writeUint64(long).toHex(0))
-    return long.toString();
+    return Long.fromNumber(Date.now()).shiftLeft(16).or(Long.fromNumber(entropy));
 };
 let unique_nonce_entropy: any = null;
 

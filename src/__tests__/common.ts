@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as https from 'https';
-import { Client, PrivateKey } from '../src';
+import { Client, PrivateKey } from '..';
 import { bytesToHex, randomBytes } from '@noble/hashes/utils';
 
 export const IS_BROWSER = global['isBrowser'] === true;
 export const agent = IS_BROWSER ? undefined : new https.Agent({ keepAlive: true });
 export const NUM_TEST_ACCOUNTS = 2;
-export const TEST_NODE = process.env['TEST_NODE'] || 'https://api.hive.blog';
+export const TEST_NODE = process.env['TEST_NODE'] || 'https://api.deathwing.me';
 export const TEST_CLIENT = new Client({ nodes: [TEST_NODE], agent });
 export const MIRROR_CLIENT = Client.testnet();
 

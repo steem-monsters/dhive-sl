@@ -1,9 +1,9 @@
-import ByteBuffer from 'bytebuffer';
 import { Asset, PriceType } from './asset';
+import { ByteBuffer } from '../crypto/bytebuffer';
 import { Operation, WitnessSetPropertiesOperation } from './operation';
 import { PublicKey } from './keys';
 
-export type Serializer = (buffer: ByteBuffer, data: any) => void;
+export type Serializer = (buffer: ByteBuffer, data: any) => void | Uint8Array;
 
 const VoidSerializer = () => {
     throw new Error('Void can not be serialized');
@@ -30,19 +30,19 @@ const Int64Serializer = (buffer: ByteBuffer, data: number) => {
 };
 
 const UInt8Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint8(data);
+    buffer.writeUInt8(data);
 };
 
 const UInt16Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint16(data);
+    buffer.writeUInt16(data);
 };
 
 const UInt32Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint32(data);
+    buffer.writeUInt32(data);
 };
 
 const UInt64Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint64(data);
+    buffer.writeUInt64(data);
 };
 
 const BooleanSerializer = (buffer: ByteBuffer, data: boolean) => {
@@ -64,14 +64,14 @@ const AssetSerializer = (buffer: ByteBuffer, data: Asset | string | number) => {
     const asset = Asset.from(data).steem_symbols();
     const precision = asset.getPrecision();
     buffer.writeInt64(Math.round(asset.amount * Math.pow(10, precision)));
-    buffer.writeUint8(precision);
+    buffer.writeUInt8(precision);
     for (let i = 0; i < 7; i++) {
-        buffer.writeUint8(asset.symbol.charCodeAt(i) || 0);
+        buffer.writeUInt8(asset.symbol.charCodeAt(i) || 0);
     }
 };
 
 const DateSerializer = (buffer: ByteBuffer, data: string) => {
-    buffer.writeUint32(Math.floor(new Date(data + 'Z').getTime() / 1000));
+    buffer.writeUInt32(Math.floor(new Date(data + 'Z').getTime() / 1000));
 };
 
 const PublicKeySerializer = (buffer: ByteBuffer, data: PublicKey | string | null) => {
@@ -598,7 +598,7 @@ export interface WitnessProps {
     url?: string;
 }
 function serialize(serializer: Serializer, data: any) {
-    const buffer = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+    const buffer = new ByteBuffer();
     serializer(buffer, data);
     buffer.flip();
     // `props` values must be hex

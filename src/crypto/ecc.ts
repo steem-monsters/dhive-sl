@@ -1,39 +1,6 @@
 // Taken & modified from
 // https://github.com/cryptocoinjs/ecurve
 
-/* Parts of this software are derivative works of Tom Wu `ec.js` (as part of JSBN).
- * See http://www-cs-students.stanford.edu/~tjw/jsbn/ec.js
- *
- * Copyright (c) 2003-2005  Tom Wu
- * All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
- * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
- *
- * IN NO EVENT SHALL TOM WU BE LIABLE FOR ANY SPECIAL, INCIDENTAL,
- * INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND, OR ANY DAMAGES WHATSOEVER
- * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER OR NOT ADVISED OF
- * THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF LIABILITY, ARISING OUT
- * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- * In addition, the following condition applies:
- *
- * All redistributions must retain an intact copy of this copyright notice
- * and disclaimer.
- */
-
 import BigInteger from 'bigi';
 
 export type EccCurveName = 'secp128r1' | 'secp160k1' | 'secp160r1' | 'secp192k1' | 'secp192r1' | 'secp256k1' | 'secp256r1';
@@ -182,9 +149,7 @@ export class EccPoint {
         const v = x2.multiply(this.z).subtract(x1.multiply(b.z)).mod(this.curve.p);
 
         if (v.signum() === 0) {
-            if (u.signum() === 0) {
-                return this.twice(); // this == b, so double
-            }
+            if (u.signum() === 0) return this.twice(); // this == b, so double
 
             return this.curve.infinity; // this = -b, so infinity
         }
@@ -280,11 +245,8 @@ export class EccPoint {
             R = R.twice();
 
             if (jBit) {
-                if (kBit) {
-                    R = R.add(both);
-                } else {
-                    R = R.add(this);
-                }
+                if (kBit) R = R.add(both);
+                else R = R.add(this);
             } else if (kBit) {
                 R = R.add(x);
             }
@@ -344,18 +306,12 @@ export class EccPoint {
 }
 
 export class EccCurve {
-    public p: any;
-    public a: any;
-    public b: any;
     public G: any;
-    public n: any;
-    public h: any;
     public infinity: any;
     public pOverFour: any;
     public pLength: any;
 
-    constructor(p, a, b, Gx, Gy, n, h) {
-        this.p = p;
+    constructor(public p: any, public a: any, public b: any, Gx: any, Gy: any, public n: any, public h: any) {
         this.a = a;
         this.b = b;
         this.G = EccPoint.fromAffine(Gx, Gy, this);
@@ -392,9 +348,7 @@ export class EccCurve {
 
         let y = beta;
         // check if works
-        if (beta.isEven() !== !isOdd) {
-            y = this.p.subtract(y); // -y % p
-        }
+        if (beta.isEven() !== !isOdd) y = this.p.subtract(y); // -y % p
 
         return EccPoint.fromAffine(x, y, this);
     }

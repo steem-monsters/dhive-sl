@@ -1,7 +1,7 @@
-import { BroadcastAPI, CustomJsonOperation, CustomOperation, PrivateKey, PublicKey, Signature, Transaction } from '../src';
+import { BroadcastAPI, CustomJsonOperation, CustomOperation, PrivateKey, PublicKey, Signature, Transaction } from '..';
 import { TEST_CLIENT } from './common';
-import { generateUniqueNounce } from '../src/utils/utils';
-import { hash } from '../src/crypto/hash';
+import { generateUniqueNounce } from '../utils/utils';
+import { hash } from '../crypto/hash';
 import { hexToBytes } from '@noble/hashes/utils';
 
 describe('crypto', function () {

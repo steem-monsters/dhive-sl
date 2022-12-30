@@ -1,4 +1,4 @@
-import { Client, PrivateKey } from '../src';
+import { Client, PrivateKey } from '..';
 import { agent, getTestnetAccounts, randomString } from './common';
 
 describe('broadcast', function () {

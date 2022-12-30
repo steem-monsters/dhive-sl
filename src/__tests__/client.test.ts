@@ -1,8 +1,8 @@
-import { Client } from '../src';
-import { HiveEngineClient } from '../src/engine/client';
+import { Client } from '..';
+import { HiveEngineClient } from '../engine/client';
 import { TEST_CLIENT } from './common';
 import { VError } from 'verror';
-import { timeout } from '../src/utils/utils';
+import { timeout } from '../utils/utils';
 
 describe('TEST_CLIENT', function () {
     // this.slow(200);

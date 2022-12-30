@@ -1,10 +1,7 @@
-import { UsageTracker } from '../src/utils/usageTracker';
+import { UsageTracker } from '../utils/usageTracker';
+import { timeout } from '../utils/utils';
 
 describe('UsageTracker throttling tests', function () {
-    function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
     const step = 20;
 
     let tracker: UsageTracker;
@@ -39,10 +36,10 @@ describe('UsageTracker throttling tests', function () {
 
     it('Ages out after half step', async () => {
         expect(tracker.throttle('a')).toBeFalsy();
-        await sleep(step * 0.55); // Slightly more to deal with scheduler resolution clamping
+        await timeout(step * 0.55); // Slightly more to deal with scheduler resolution clamping
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeTruthy();
-        await sleep(step * 0.55); // Slightly more to deal with scheduler resolution clamping
+        await timeout(step * 0.55); // Slightly more to deal with scheduler resolution clamping
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeTruthy();
     });
@@ -51,7 +48,7 @@ describe('UsageTracker throttling tests', function () {
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeTruthy();
-        await sleep(step * 2.1); // Slightly more to deal with scheduler resolution clamping
+        await timeout(step * 2.1); // Slightly more to deal with scheduler resolution clamping
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeTruthy();

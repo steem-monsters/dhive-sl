@@ -10,7 +10,6 @@ import { hash } from '../crypto/hash';
 import { isArrayEqual } from '../utils/utils';
 
 export type PrivateKeyArg = string | string[] | PrivateKey | PrivateKey[];
-export type Hex = Uint8Array | string;
 
 export type KeyRoleOwner = 'owner';
 export type KeyRoleActive = 'active';
@@ -103,11 +102,6 @@ export class PublicKey {
 
         return new PublicKey(key, prefix);
     }
-
-    // public static fromPoint(point: any) {
-    //     const x = EccPoint.decodeFrom(SecpCurve, this.key);
-
-    // }
 
     private decodePoint() {
         return EccPoint.decodeFrom(SecpCurve, this.key);
@@ -209,8 +203,24 @@ export class PrivateKey {
     }
 
     /**
-     * Sign message.
-     * @param message 32-byte message.
+     * Checks whether given key is a valid private key
+     */
+    public static isWif(key: string) {
+        try {
+            const bufWif = bs58.decode(key);
+            const privKey = bufWif.subarray(0, -4);
+            const checksum = bufWif.subarray(-4);
+            let newChecksum = hash.sha256(privKey);
+            newChecksum = hash.sha256(newChecksum);
+            newChecksum = newChecksum.subarray(0, 4);
+            return checksum.toString() === newChecksum.toString();
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Sign 32 byte message
      */
     public sign(message: Uint8Array): Signature {
         let rv: { signature: Uint8Array; recid: number };
@@ -226,8 +236,7 @@ export class PrivateKey {
     }
 
     /**
-     * Wrapper around sign
-     * @param message 32-byte message.
+     * Wrapper around sign + returns string
      */
     public signMessage(message: string): string {
         return this.sign(hash.sha256(message)).toString();
@@ -240,23 +249,12 @@ export class PrivateKey {
         return new PublicKey(publicKeyCreate(this.key), prefix);
     }
 
+    /**
+     * Checks whether the given public key is the public key from this private key
+     */
     public isPublicKey(publicKey: string | PublicKey, prefix?: string) {
         const key = publicKey instanceof PublicKey ? publicKey.toString() : publicKey;
         return key === this.createPublic(prefix).toString();
-    }
-
-    public static isWif(key: any) {
-        try {
-            const bufWif = bs58.decode(key);
-            const privKey = bufWif.subarray(0, -4);
-            const checksum = bufWif.subarray(-4);
-            let newChecksum = hash.sha256(privKey);
-            newChecksum = hash.sha256(newChecksum);
-            newChecksum = newChecksum.subarray(0, 4);
-            return checksum.toString() === newChecksum.toString();
-        } catch (e) {
-            return false;
-        }
     }
 
     /**
@@ -269,6 +267,9 @@ export class PrivateKey {
         return bs58.encode(new Uint8Array([...key, ...checksum.subarray(0, 4)]));
     }
 
+    /**
+     * Returns the shared secret with the given public key
+     */
     public getSharedSecret(publicKey: string | PublicKey) {
         const key = publicKey instanceof PublicKey ? publicKey : PublicKey.from(publicKey);
         const KBP = EccPoint.fromAffine(
@@ -326,7 +327,7 @@ export class Signature {
     }
 
     public toString() {
-        return bytesToHex(this.toBuffer()); // getSignature(this.data).toCompactHex();
+        return bytesToHex(this.toBuffer());
     }
 
     public static isCanonical(signature: any) {

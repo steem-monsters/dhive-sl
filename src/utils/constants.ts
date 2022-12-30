@@ -1,12 +1,5 @@
-// import packageVersion from './version';
-
 import { OperationName, VirtualOperationName } from '../chain';
 import { hexToBytes } from '@noble/hashes/utils';
-
-// /**
-//  * Library version.
-//  */
-// export const VERSION = packageVersion;
 
 /**
  * Main Hive network chain id.

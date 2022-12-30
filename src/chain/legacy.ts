@@ -1,13 +1,14 @@
 // Originally from hive-js - https://gitlab.syncad.com/hive/hive-js
 
-import ByteBuffer from 'bytebuffer';
+import Long from 'long';
+import { ByteBuffer } from '../crypto/bytebuffer';
 import { DEFAULT_ADDRESS_PREFIX } from '../utils/constants';
 import { PublicKey } from './keys';
 import { binaryStringToBytes, bytesToBinaryString } from '../crypto/utils';
 
 const HEX_DUMP = process.env.npm_config__graphene_serializer_hex_dump;
 
-export class SerializerHiveJS {
+export class LegacySerializer {
     private operationName: string;
     private types: any;
     private keys: any;
@@ -19,11 +20,9 @@ export class SerializerHiveJS {
         this.types = types;
         this.addressPrefix = addressPrefix;
         if (this.types) this.keys = Object.keys(this.types);
-
-        SerializerHiveJS.printDebug = true;
     }
 
-    fromByteBuffer(b) {
+    fromByteBuffer(b: ByteBuffer) {
         const object = {};
         const field = null;
         try {
@@ -47,10 +46,7 @@ export class SerializerHiveJS {
                     }
                     object[field] = type.fromByteBuffer(b);
                 } catch (e) {
-                    if (SerializerHiveJS.printDebug) {
-                        console.error(`Error reading ${this.operationName}.${field} in data:`);
-                        b.printDebug();
-                    }
+                    console.error(`Error reading ${this.operationName}.${field} in data:`, b);
                     throw e;
                 }
             }
@@ -61,7 +57,7 @@ export class SerializerHiveJS {
         return object;
     }
 
-    appendByteBuffer(b, object) {
+    appendByteBuffer(b: ByteBuffer, object) {
         const field: any = null;
         try {
             const iterable = this.keys;
@@ -90,8 +86,6 @@ export class SerializerHiveJS {
                 field = iterable[i];
                 const type = this.types[field];
                 const value = serialized_object[field];
-                //DEBUG value = value.resolve if value.resolve
-                //DEBUG console.log('... value',field,value)
                 const object = type.fromObject(value);
                 result[field] = object;
             }
@@ -123,7 +117,7 @@ export class SerializerHiveJS {
                 );
                 result[field] = object;
                 if (HEX_DUMP) {
-                    let b = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+                    let b = new ByteBuffer();
                     const has_value = typeof serialized_object !== 'undefined' && serialized_object !== null;
                     if (has_value) {
                         const value = serialized_object[field];
@@ -140,13 +134,12 @@ export class SerializerHiveJS {
         return result;
     }
 
-    fromBuffer(buffer): any {
-        const b = ByteBuffer.fromBinary(bytesToBinaryString(buffer), ByteBuffer.LITTLE_ENDIAN);
-        return this.fromByteBuffer(b);
+    fromBuffer(buffer) {
+        return this.fromByteBuffer(ByteBuffer.fromBinary(bytesToBinaryString(buffer)));
     }
 
     toByteBuffer(object) {
-        const b = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+        const b = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY);
         this.appendByteBuffer(b, object);
         return b.copy(0, b.offset);
     }
@@ -186,7 +179,7 @@ class ErrorWithCause {
     }
 }
 
-const parsePublicKey = (b, publicKey?: PublicKey) => {
+const parsePublicKey = (b: ByteBuffer, publicKey?: PublicKey) => {
     if (!b) return;
 
     if (publicKey) {
@@ -202,13 +195,10 @@ const parsePublicKey = (b, publicKey?: PublicKey) => {
 
 export const Types = {
     uint32: {
-        fromByteBuffer(b) {
-            return b.readUint32();
-        },
-        appendByteBuffer(b, object) {
+        fromByteBuffer: (b: ByteBuffer) => b.readUInt32(),
+        appendByteBuffer(b: ByteBuffer, object) {
             validations.require_range(0, 0xffffffff, object, `uint32 ${object}`);
-            b.writeUint32(object);
-            return;
+            return b.writeUInt32(object);
         },
         fromObject(object) {
             validations.require_range(0, 0xffffffff, object, `uint32 ${object}`);
@@ -216,28 +206,20 @@ export const Types = {
         },
     },
     uint64: {
-        fromByteBuffer(b) {
-            return b.readUint64();
-        },
-        appendByteBuffer(b, object) {
-            b.writeUint64(validations.to_long(validations.unsigned(object)));
-            return;
-        },
-        fromObject(object) {
-            return validations.to_long(validations.unsigned(object));
-        },
+        fromByteBuffer: (b: ByteBuffer) => b.readUInt64(),
+        appendByteBuffer: (b: ByteBuffer, object) => b.writeUInt64(validations.to_long(validations.unsigned(object))),
+        fromObject: (object) => validations.to_long(validations.unsigned(object)),
     },
     stringBinary: {
-        fromByteBuffer(b) {
-            let b_copy;
-            const len = b.readVarint32();
-            (b_copy = b.copy(b.offset, b.offset + len)), b.skip(len);
+        fromByteBuffer(b: ByteBuffer) {
+            const len = b.readVarint32() as number;
+            const b_copy = b.copy(b.offset, b.offset + len);
+            b.skip(len);
             return b_copy.toString('binary');
         },
-        appendByteBuffer(b, object) {
+        appendByteBuffer(b: ByteBuffer, object) {
             b.writeVarint32(object.length);
-            b.append(object.toString('binary'), 'binary');
-            return;
+            return b.append(object.toString('binary'), 'binary');
         },
         fromObject(object) {
             validations.required(object);
@@ -245,34 +227,27 @@ export const Types = {
         },
     },
     publicKey: {
-        toPublic(object) {
-            return PublicKey.from(object);
-        },
-        fromByteBuffer(b) {
-            return parsePublicKey(b);
-        },
-        appendByteBuffer(b, object) {
+        toPublic: (object: any) => PublicKey.from(object),
+        fromByteBuffer: (b: ByteBuffer) => parsePublicKey(b),
+        appendByteBuffer: (b: ByteBuffer, object: any) => {
             validations.required(object);
-            parsePublicKey(b, Types.publicKey.toPublic(object));
-            return;
+            return parsePublicKey(b, Types.publicKey.toPublic(object));
         },
         fromObject(object) {
             validations.required(object);
-            if (object.Q) {
-                return object;
-            }
+            if (object.Q) return object;
             return Types.publicKey.toPublic(object);
         },
     },
 };
 
-export const EncryptedMemoSerializer = new SerializerHiveJS('encryptedMemo', {
+export const EncryptedMemoSerializer = new LegacySerializer('encryptedMemo', {
     from: Types.publicKey,
     to: Types.publicKey,
     nonce: Types.uint64,
     check: Types.uint32,
     encrypted: Types.stringBinary,
-});
+}) as any;
 
 let is_empty;
 let to_number;
@@ -280,134 +255,80 @@ let to_number;
 const MAX_SAFE_INT = 9007199254740991;
 const MIN_SAFE_INT = -9007199254740991;
 
-/**
-    Most validations are skipped and the value returned unchanged when an empty string, null, or undefined is encountered (except "required"). 
-
-    Validations support a string format for dealing with large numbers.
-*/
 const validations = {
     is_empty: (is_empty = function (value) {
         return value === null || value === undefined;
     }),
-
     required(value, field_name = '') {
-        if (is_empty(value)) {
-            throw new Error(`value required ${field_name} ${value}`);
-        }
+        if (is_empty(value)) throw new Error(`value required ${field_name} ${value}`);
         return value;
     },
 
     require_long(value, field_name = '') {
-        if (!ByteBuffer.Long.isLong(value)) {
-            throw new Error(`ByteBuffer.Long value required ${field_name} ${value}`);
-        }
+        if (!Long.isLong(value)) throw new Error(`ByteBuffer.Long value required ${field_name} ${value}`);
         return value;
     },
-
     unsigned(value, field_name = '') {
-        if (is_empty(value)) {
-            return value;
-        }
-        if (/-/.test(value)) {
-            throw new Error(`unsigned required ${field_name} ${value}`);
-        }
+        if (is_empty(value)) return value;
+        if (/-/.test(value)) throw new Error(`unsigned required ${field_name} ${value}`);
         return value;
     },
 
     to_number: (to_number = function (value, field_name = '') {
-        if (is_empty(value)) {
-            return value;
-        }
+        if (is_empty(value)) return value;
         validations.no_overflow53(value, field_name);
         const int_value = (() => {
-            if (typeof value === 'number') {
-                return value;
-            } else {
-                return parseInt(value);
-            }
+            if (typeof value === 'number') return value;
+            else return parseInt(value);
         })();
         return int_value;
     }),
 
     to_long(value, field_name = '') {
-        if (is_empty(value)) {
-            return value;
-        }
-        if (ByteBuffer.Long.isLong(value)) {
-            return value;
-        }
-
+        if (is_empty(value)) return value;
+        if (Long.isLong(value)) return value;
         validations.no_overflow64(value, field_name);
-        if (typeof value === 'number') {
-            value = '' + value;
-        }
-        return ByteBuffer.Long.fromString(value);
+        if (typeof value === 'number') value = '' + value;
+        return Long.fromString(value);
     },
 
     to_string(value, field_name = '') {
-        if (is_empty(value)) {
-            return value;
-        }
-        if (typeof value === 'string') {
-            return value;
-        }
+        if (is_empty(value)) return value;
+        if (typeof value === 'string') return value;
         if (typeof value === 'number') {
             validations.no_overflow53(value, field_name);
             return '' + value;
         }
-        if (ByteBuffer.Long.isLong(value)) {
-            return value.toString();
-        }
+        if (Long.isLong(value)) return value.toString();
         throw `unsupported type ${field_name}: (${typeof value}) ${value}`;
     },
 
     // Does not support over 53 bits
     require_range(min, max, value, field_name = '') {
-        if (is_empty(value)) {
-            return value;
-        }
+        if (is_empty(value)) return value;
         const number = to_number(value);
-        if (number < min || number > max) {
-            throw new Error(`out of range ${value} ${field_name} ${value}`);
-        }
+        if (number < min || number > max) throw new Error(`out of range ${value} ${field_name} ${value}`);
         return value;
     },
 
     // signed / unsigned decimal
     no_overflow53(value, field_name = '') {
         if (typeof value === 'number') {
-            if (value > MAX_SAFE_INT || value < MIN_SAFE_INT) {
-                throw new Error(`overflow ${field_name} ${value}`);
-            }
-            return;
-        }
-        if (typeof value === 'string') {
+            if (value > MAX_SAFE_INT || value < MIN_SAFE_INT) throw new Error(`overflow ${field_name} ${value}`);
+        } else if (typeof value === 'string') {
             const int = parseInt(value);
-            if (int > MAX_SAFE_INT || int < MIN_SAFE_INT) {
-                throw new Error(`overflow ${field_name} ${value}`);
-            }
-            return;
-        }
-        if (ByteBuffer.Long.isLong(value)) {
-            // typeof value.toInt() is 'number'
+            if (int > MAX_SAFE_INT || int < MIN_SAFE_INT) throw new Error(`overflow ${field_name} ${value}`);
+        } else if (Long.isLong(value)) {
             validations.no_overflow53(value.toInt(), field_name);
-            return;
-        }
-        throw `unsupported type ${field_name}: (${typeof value}) ${value}`;
+        } else throw `unsupported type ${field_name}: (${typeof value}) ${value}`;
     },
-
     // signed / unsigned whole numbers only
     no_overflow64(value, field_name = '') {
         // https://github.com/dcodeIO/ByteBuffer.Long.js/issues/20
-        if (ByteBuffer.Long.isLong(value)) {
-            return;
-        }
+        if (Long.isLong(value)) return;
 
         // BigInteger#isBigInteger https://github.com/cryptocoinjs/bigi/issues/20
-        if (value.t !== undefined && value.s !== undefined) {
-            validations.no_overflow64(value.toString(), field_name);
-            return;
-        }
+        if (value.t !== undefined && value.s !== undefined) return validations.no_overflow64(value.toString(), field_name);
 
         if (typeof value === 'string') {
             // remove leading zeros, will cause a false positive
@@ -423,19 +344,10 @@ const validations = {
             if (value === '') {
                 value = '0';
             }
-            const long_string = ByteBuffer.Long.fromString(value).toString();
-            if (long_string !== value.trim()) {
-                throw new Error(`overflow ${field_name} ${value}`);
-            }
+            const long_string = Long.fromString(value).toString();
+            if (long_string !== value.trim()) throw new Error(`overflow ${field_name} ${value}`);
             return;
         }
-        if (typeof value === 'number') {
-            if (value > MAX_SAFE_INT || value < MIN_SAFE_INT) {
-                throw new Error(`overflow ${field_name} ${value}`);
-            }
-            return;
-        }
-
         throw `unsupported type ${field_name}: (${typeof value}) ${value}`;
     },
 };

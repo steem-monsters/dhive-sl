@@ -1,6 +1,6 @@
-import { Asset } from '../src';
+import { Asset } from '..';
 import { TEST_CLIENT } from './common';
-import { sortAsc } from '../src/utils/utils';
+import { sortAsc } from '../utils/utils';
 
 describe('database api', function () {
     // this.slow(500);

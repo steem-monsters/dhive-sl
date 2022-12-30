@@ -13,9 +13,6 @@ export const makeBitMaskFilter = (operationNames: (OperationName | VirtualOperat
 };
 
 const redFunction = ([low, high], operationId) => {
-    if (operationId < 64) {
-        return [JSBI.bitwiseOr(low, JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(operationId))), high];
-    } else {
-        return [low, JSBI.bitwiseOr(high, JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(operationId - 64)))];
-    }
+    if (operationId < 64) return [JSBI.bitwiseOr(low, JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(operationId))), high];
+    else return [low, JSBI.bitwiseOr(high, JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(operationId - 64)))];
 };

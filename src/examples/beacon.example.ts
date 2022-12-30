@@ -1,5 +1,5 @@
-import { Client } from '../src/index';
-import { log, timeout } from '../src/utils/utils';
+import { Client } from '../index';
+import { log, timeout } from '../utils/utils';
 
 const main = async () => {
     /**

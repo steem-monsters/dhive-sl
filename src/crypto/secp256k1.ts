@@ -1,5 +1,4 @@
 import { CURVE, Point, Signature as SecpSignature, getPublicKey, signSync, utils, verify } from '@noble/secp256k1';
-import { Hex } from '../chain';
 import { utils as _utils } from '@noble/secp256k1';
 import { assertBool, assertBytes, hexToBytes } from './utils';
 import { bytesToHex } from '@noble/hashes/utils';
@@ -14,66 +13,42 @@ _utils.hmacSha256Sync = (key: Uint8Array, ...messages: Uint8Array[]) => {
     return h.digest();
 };
 
-// Use `secp256k1` module directly.
-// This is a legacy compatibility layer for the npm package `secp256k1` via noble-secp256k1
-
-function hexToNumber(hex: string): bigint {
-    if (typeof hex !== 'string') {
-        throw new TypeError('hexToNumber: expected string, got ' + typeof hex);
-    }
+const hexToNumber = (hex: string): bigint => {
+    if (typeof hex !== 'string') throw new TypeError('hexToNumber: expected string, got ' + typeof hex);
     return BigInt(`0x${hex}`);
-}
+};
 
-// Copy-paste from secp256k1, maybe export it?
 export const bytesToNumber = (bytes: Uint8Array) => hexToNumber(bytesToHex(bytes));
 export const numberToHex = (num: number | bigint) => num.toString(16).padStart(64, '0');
 export const numberToBytes = (num: number | bigint) => hexToBytes(numberToHex(num));
 
-const ORDER = CURVE.n;
+export type Secp256k1Output = Uint8Array | ((len: number) => Uint8Array);
 
-type Output = Uint8Array | ((len: number) => Uint8Array);
-interface Signature {
-    signature: Uint8Array;
-    recid: number;
-}
-
-function output(out: Output = (len: number) => new Uint8Array(len), length: number, value?: Uint8Array) {
-    if (typeof out === 'function') {
-        out = out(length);
-    }
+const output = (out: Secp256k1Output = (len: number) => new Uint8Array(len), length: number, value?: Uint8Array) => {
+    if (typeof out === 'function') out = out(length);
     assertBytes(out, length);
-    if (value) {
-        out.set(value);
-    }
+    if (value) out.set(value);
     return out;
-}
+};
 
 export const getSignature = (signature: Uint8Array) => {
     assertBytes(signature, 64);
     return SecpSignature.fromCompact(signature);
 };
 
-export function createPrivateKeySync(): Uint8Array {
-    return utils.randomPrivateKey();
-}
-
-export async function createPrivateKey(): Promise<Uint8Array> {
-    return createPrivateKeySync();
-}
-
-export function privateKeyVerify(privateKey: Uint8Array): boolean {
+export const privateKeyVerify = (privateKey: Uint8Array): boolean => {
     assertBytes(privateKey, 32);
     return utils.isValidPrivateKey(privateKey);
-}
+};
 
-export function publicKeyCreate(privateKey: Uint8Array, compressed = true, out?: Output): Uint8Array {
+export const publicKeyCreate = (privateKey: Uint8Array, compressed = true, out?: Secp256k1Output): Uint8Array => {
     assertBytes(privateKey, 32);
     assertBool(compressed);
     const res = getPublicKey(privateKey, compressed);
     return output(out, compressed ? 33 : 65, res);
-}
+};
 
-export function publicKeyVerify(publicKey: Uint8Array): boolean {
+export const publicKeyVerify = (publicKey: Uint8Array): boolean => {
     assertBytes(publicKey, 33, 65);
     if (isArrayEqual(publicKey, new Uint8Array(33))) return true;
     try {
@@ -82,9 +57,14 @@ export function publicKeyVerify(publicKey: Uint8Array): boolean {
     } catch (e) {
         return false;
     }
-}
+};
 
-export function ecdsaSign(msgHash: Uint8Array, privateKey: Uint8Array, extraEntropy?: Hex | true, out?: Output): Signature {
+export const ecdsaSign = (
+    msgHash: Uint8Array,
+    privateKey: Uint8Array,
+    extraEntropy?: Uint8Array | string | true,
+    out?: Secp256k1Output,
+): { signature: Uint8Array; recid: number } => {
     assertBytes(msgHash, 32);
     assertBytes(privateKey, 32);
 
@@ -95,27 +75,26 @@ export function ecdsaSign(msgHash: Uint8Array, privateKey: Uint8Array, extraEntr
         canonical: false,
     });
     return { signature: output(out, 64, signature), recid };
-}
+};
 
-export function ecdsaRecover(signature: Uint8Array, recid: number, msgHash: Uint8Array, compressed = true, out?: Output) {
+export const ecdsaRecover = (signature: Uint8Array, recid: number, msgHash: Uint8Array, compressed = true, out?: Secp256k1Output) => {
     assertBytes(msgHash, 32);
     assertBool(compressed);
     const sign = getSignature(signature).toHex();
     const point = Point.fromSignature(msgHash, sign, recid);
     return output(out, compressed ? 33 : 65, point.toRawBytes(compressed));
-}
+};
 
-export function ecdsaVerify(signature: Uint8Array, msgHash: Uint8Array, publicKey: Uint8Array) {
+export const ecdsaVerify = (signature: Uint8Array, msgHash: Uint8Array, publicKey: Uint8Array) => {
     assertBytes(signature, 64);
     assertBytes(msgHash, 32);
     assertBytes(publicKey, 33, 65);
     assertBytes(signature, 64);
     const r = bytesToNumber(signature.slice(0, 32));
     const s = bytesToNumber(signature.slice(32, 64));
-    if (r >= ORDER || s >= ORDER) {
-        throw new Error('Cannot parse signature');
-    }
-    const pub = Point.fromHex(publicKey); // should not throw error
+    if (r >= CURVE.n || s >= CURVE.n) throw new Error('Cannot parse signature');
+
+    const pub = Point.fromHex(publicKey);
     let sig;
     try {
         sig = getSignature(signature);
@@ -123,4 +102,4 @@ export function ecdsaVerify(signature: Uint8Array, msgHash: Uint8Array, publicKe
         return false;
     }
     return verify(sig, msgHash, pub);
-}
+};

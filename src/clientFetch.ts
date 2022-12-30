@@ -246,7 +246,6 @@ export class ClientFetch {
                 : { jsonrpc: '2.0', id: 0, ...params };
 
         const body = JSON.stringify(request, (key, value) => {
-            // encode Buffers as hex strings instead of an array of bytes
             if (value && isTypedArray(value)) {
                 return bytesToHex(value);
             }

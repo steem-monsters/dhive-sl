@@ -1,6 +1,5 @@
 import dts from 'rollup-plugin-dts';
 import esbuild from 'rollup-plugin-esbuild';
-// import nodePolyfills from 'rollup-plugin-polyfill-node';
 import nodeResolve from '@rollup/plugin-node-resolve';
 
 const name = 'dhive-sl';
@@ -27,48 +26,6 @@ export default [
             },
         ],
     }),
-    // // TODO: Not yet fully working with polyfills
-    // bundle({
-    //     external: ['buffer'],
-    //     plugins: [
-    //         nodePolyfills({
-    //             include: ['buffer', 'stream', 'events', 'assert'],
-    //         }),
-    //         nodeResolve({
-    //             browser: true,
-    //             preferBuiltins: false,
-    //         }),
-    //         ,
-    //         esbuild({ minify: false }),
-    //     ],
-    //     output: [
-    //         {
-    //             name: 'dhiveSL',
-    //             file: `dist/${name}.esm.browser.js`,
-    //             format: 'es',
-    //             sourcemap: true,
-    //         },
-    //         {
-    //             name: 'dhiveSL',
-    //             file: `dist/${name}.umd.js`,
-    //             format: 'umd',
-    //             sourcemap: true,
-    //             globals: {
-    //                 buffer: '_buffer',
-    //                 stream: 'stream',
-    //                 bytebuffer: 'bytebuffer',
-    //                 bs58: 'bs58',
-    //                 bigi: 'bigi',
-    //                 jsbi: 'jsbi',
-    //                 fs: 'fs',
-    //                 verror: 'verror',
-    //                 'secure-random': 'secureRandom',
-    //                 'browserify-aes': 'browserifyAes',
-    //                 'cross-fetch': 'crossFetch',
-    //             },
-    //         },
-    //     ],
-    // }),
     bundle({
         plugins: [dts()],
         output: {

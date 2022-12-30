@@ -1,4 +1,4 @@
-import { Asset, Price, RCAsset, RCS_PER_RC, getVestingSharePrice } from '../src';
+import { Asset, Price, RCAsset, RCS_PER_RC, getVestingSharePrice } from '..';
 
 describe('asset', function () {
     it('should create from string', function () {

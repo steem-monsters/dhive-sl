@@ -1,18 +1,8 @@
-/**
- * Sleep for N milliseconds.
- */
-export function sleep(ms: number): Promise<void> {
-    return new Promise<void>((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
+export const timeout = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Return a deep copy of a JSON-serializable object.
- */
-export function copy<T>(object: T): T {
+export const copy = <T>(object: T): T => {
     return JSON.parse(JSON.stringify(object));
-}
+};
 
 export const enum LogLevel {
     Error = 1,
@@ -26,7 +16,6 @@ type LogColors = keyof typeof logColors;
 // Logging levels: 1 = Error, 2 = Warning, 3 = Info, 4 = Debug
 export function log(msg: string, level: LogLevel = 0, color: LogColors | null = null) {
     if (color && logColors[color]) msg = logColors[color] + msg + logColors.Reset;
-
     if (level <= (process.env.LOGGING_LEVEL || 5)) console.log(`${new Date().toLocaleString()} - ${msg}`);
 }
 
@@ -58,10 +47,6 @@ const logColors = {
     BgWhite: '\x1b[47m',
 };
 
-export const timeout = (ms) => {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
 export const tryParse = (json) => {
     try {
         return JSON.parse(json);
@@ -77,26 +62,14 @@ export const isTxError = (err) => {
 
 // https://github.com/sindresorhus/prepend-http/blob/main/index.js
 export const prependHttp = (url: string, { https = true, blank = false } = {}) => {
-    if (typeof url !== 'string') {
-        throw new TypeError(`Expected \`url\` to be of type \`string\`, got \`${typeof url}\``);
-    }
+    if (typeof url !== 'string') throw new TypeError(`Expected \`url\` to be of type \`string\`, got \`${typeof url}\``);
 
     url = url.trim();
 
-    if (/^\.*\/|^(?!localhost)\w+?:/.test(url)) {
-        return url;
-    }
+    if (/^\.*\/|^(?!localhost)\w+?:/.test(url)) return url;
 
     const replacedUrl = url.replace(/^(?!(?:\w+?:)?\/\/)/, https ? 'https://' : 'http://');
     return blank ? url.replace('https://', '') : replacedUrl;
-};
-
-export const uniqueArray = <T>(a: any[], key?: string): T[] => {
-    if (key) {
-        return [...new Set(a.map((r) => r[key]))].map((r) => a.find((r2) => r2[key] === r));
-    }
-
-    return [...new Set(a.map((o) => JSON.stringify(o)))].map((s) => JSON.parse(s as any));
 };
 
 export type TimerType = ReturnType<typeof setTimeout>;
@@ -144,4 +117,4 @@ export const generateUniqueNounce = (length = 8, rng?: any) => {
     return retVal;
 };
 
-export const isArrayEqual = (first, second) => first.length === second.length && first.every((value, index) => value === second[index]);
+export const isArrayEqual = (first: any[] | Uint8Array, second: any[] | Uint8Array) => first.length === second.length && first.every((value, index) => value === second[index]);
