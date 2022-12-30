@@ -1,4 +1,4 @@
-// https://github.com/dcodeIO/lxiv
+// modified from source: https://github.com/dcodeIO/lxiv
 
 // eslint-disable-next-line
 // prettier-ignore

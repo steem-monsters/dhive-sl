@@ -3,52 +3,22 @@ import { ByteBuffer } from '../crypto/bytebuffer';
 import { Operation, WitnessSetPropertiesOperation } from './operation';
 import { PublicKey } from './keys';
 
-export type Serializer = (buffer: ByteBuffer, data: any) => void | Uint8Array;
+export type Serializer = (buffer: ByteBuffer, data: any) => any;
 
 const VoidSerializer = () => {
     throw new Error('Void can not be serialized');
 };
 
-const StringSerializer = (buffer: ByteBuffer, data: string) => {
-    buffer.writeVString(data);
-};
-
-const Int8Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt8(data);
-};
-
-const Int16Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt16(data);
-};
-
-const Int32Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt32(data);
-};
-
-const Int64Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt64(data);
-};
-
-const UInt8Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUInt8(data);
-};
-
-const UInt16Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUInt16(data);
-};
-
-const UInt32Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUInt32(data);
-};
-
-const UInt64Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUInt64(data);
-};
-
-const BooleanSerializer = (buffer: ByteBuffer, data: boolean) => {
-    buffer.writeByte(data ? 1 : 0);
-};
-
+const StringSerializer = (buffer: ByteBuffer, data: string) => buffer.writeVString(data);
+const Int8Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt8(data);
+const Int16Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt16(data);
+const Int32Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt32(data);
+const Int64Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt64(data);
+const UInt8Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt8(data);
+const UInt16Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt16(data);
+const UInt32Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt32(data);
+const UInt64Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt64(data);
+const BooleanSerializer = (buffer: ByteBuffer, data: boolean) => buffer.writeByte(data ? 1 : 0);
 const StaticVariantSerializer = (itemSerializers: Serializer[]) => (buffer: ByteBuffer, data: [number, any]) => {
     const [id, item] = data;
     buffer.writeVarint32(id);
@@ -70,9 +40,7 @@ const AssetSerializer = (buffer: ByteBuffer, data: Asset | string | number) => {
     }
 };
 
-const DateSerializer = (buffer: ByteBuffer, data: string) => {
-    buffer.writeUInt32(Math.floor(new Date(data + 'Z').getTime() / 1000));
-};
+const DateSerializer = (buffer: ByteBuffer, data: string) => buffer.writeUInt32(Math.floor(new Date(data + 'Z').getTime() / 1000));
 
 const PublicKeySerializer = (buffer: ByteBuffer, data: PublicKey | string | null) => {
     if (data === null || (typeof data === 'string' && data.endsWith('1111111111111111111111111111111114T1Anm'))) {
@@ -85,12 +53,8 @@ const PublicKeySerializer = (buffer: ByteBuffer, data: PublicKey | string | null
 const BinarySerializer = (size?: number) => (buffer: ByteBuffer, data: Uint8Array) => {
     const len = data.length;
     if (size) {
-        if (len !== size) {
-            throw new Error(`Unable to serialize binary. Expected ${size} bytes, got ${len}`);
-        }
-    } else {
-        buffer.writeVarint32(len);
-    }
+        if (len !== size) throw new Error(`Unable to serialize binary. Expected ${size} bytes, got ${len}`);
+    } else buffer.writeVarint32(len);
     buffer.append(data.buffer);
 };
 
@@ -173,6 +137,7 @@ const OperationDataSerializer = (operationId: number, definitions: [string, Seri
 };
 
 const OperationSerializers: { [name: string]: Serializer } = {};
+
 OperationSerializers.account_create = OperationDataSerializer(9, [
     ['fee', AssetSerializer],
     ['creator', StringSerializer],

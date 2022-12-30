@@ -1,4 +1,4 @@
-// source: https://github.com/ethereum/js-ethereum-cryptography/blob/master/src/aes.ts
+// modified from source: https://github.com/ethereum/js-ethereum-cryptography/blob/master/src/aes.ts
 
 import { concatBytes } from '@noble/hashes/utils';
 import { crypto } from '@noble/hashes/crypto';

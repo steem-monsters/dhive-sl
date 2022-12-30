@@ -139,7 +139,7 @@ export class LegacySerializer {
     }
 
     toByteBuffer(object) {
-        const b = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY);
+        const b = new ByteBuffer();
         this.appendByteBuffer(b, object);
         return b.copy(0, b.offset);
     }

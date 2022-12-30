@@ -1,3 +1,5 @@
+// modified from source: https://github.com/ethereum/js-ethereum-cryptography
+
 import { CURVE, Point, Signature as SecpSignature, getPublicKey, signSync, utils, verify } from '@noble/secp256k1';
 import { utils as _utils } from '@noble/secp256k1';
 import { assertBool, assertBytes, hexToBytes } from './utils';

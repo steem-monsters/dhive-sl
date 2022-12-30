@@ -1,4 +1,4 @@
-// source: https://github.com/cryptocoinjs/ecurve
+// modified from source: https://github.com/cryptocoinjs/ecurve
 
 import BigInteger from 'bigi';
 

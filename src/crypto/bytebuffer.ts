@@ -1,4 +1,4 @@
-// source: https://github.com/protobufjs/bytebuffer.js
+// modified from source: https://github.com/protobufjs/bytebuffer.js
 
 import Long from 'long';
 import { lxiv, utfx } from './lxiv-utfx';
@@ -7,9 +7,6 @@ const EMPTY_BUFFER = new Uint8Array(0);
 
 export class ByteBuffer {
     public static DEFAULT_CAPACITY = 16;
-    public static LITTLE_ENDIAN = true;
-    public static BIG_ENDIAN = false;
-    public static DEFAULT_ENDIAN = ByteBuffer.LITTLE_ENDIAN;
     public static METRICS_CHARS = 'c';
     public static METRICS_BYTES = 'b';
 
@@ -19,7 +16,7 @@ export class ByteBuffer {
     public limit: number;
     public markedOffset: number;
 
-    constructor(private readonly capacity: number = ByteBuffer.DEFAULT_CAPACITY, private readonly littleEndian = ByteBuffer.DEFAULT_ENDIAN) {
+    constructor(private readonly capacity: number = ByteBuffer.DEFAULT_CAPACITY) {
         this.buffer = new ArrayBuffer(capacity);
         this.view = new Uint8Array(this.buffer);
 
@@ -38,9 +35,9 @@ export class ByteBuffer {
         else return 5;
     }
 
-    public static fromBase64(str, littleEndian) {
+    public static fromBase64(str) {
         if (typeof str !== 'string') throw TypeError('str');
-        const bb = new ByteBuffer((str.length / 4) * 3, littleEndian);
+        const bb = new ByteBuffer((str.length / 4) * 3);
         let i = 0;
         lxiv.decode(stringSource(str), function (b) {
             bb.view[i++] = b;
@@ -49,12 +46,12 @@ export class ByteBuffer {
         return bb;
     }
 
-    public static fromHex(str: string, littleEndian?: boolean) {
+    public static fromHex(str: string) {
         str = BBAssert.checkString(str);
         if (str.length % 2 !== 0) throw TypeError('Illegal str: Length not a multiple of 2');
 
         const k = str.length;
-        const bb = new ByteBuffer((k / 2) | 0, littleEndian);
+        const bb = new ByteBuffer((k / 2) | 0);
         let b;
         let j = 0;
         for (let i = 0; i < k; i += 2) {
@@ -66,12 +63,12 @@ export class ByteBuffer {
         return bb;
     }
 
-    public static fromBinary(str: string, littleEndian?: boolean) {
+    public static fromBinary(str: string) {
         if (typeof str !== 'string') throw TypeError('str');
         let i = 0;
         const k = str.length;
         let charCode;
-        const bb = new ByteBuffer(k, littleEndian);
+        const bb = new ByteBuffer(k);
         while (i < k) {
             charCode = str.charCodeAt(i);
             if (charCode > 0xff) throw RangeError('illegal char code: ' + charCode);
@@ -81,9 +78,9 @@ export class ByteBuffer {
         return bb;
     }
 
-    public static fromUTF8(str: string, littleEndian?: boolean) {
+    public static fromUTF8(str: string) {
         str = BBAssert.checkString(str);
-        const bb = new ByteBuffer(utfx.calculateUTF16asUTF8(stringSource(str))[1], littleEndian);
+        const bb = new ByteBuffer(utfx.calculateUTF16asUTF8(stringSource(str))[1]);
         let i = 0;
         utfx.encodeUTF16toUTF8(stringSource(str), function (b) {
             bb.view[i++] = b;
@@ -93,7 +90,7 @@ export class ByteBuffer {
     }
 
     public static clone(copy: ByteBuffer) {
-        const bb = new ByteBuffer(0, copy.littleEndian);
+        const bb = new ByteBuffer(0);
         bb.buffer = new ArrayBuffer(copy.buffer.byteLength);
         bb.view = new Uint8Array(bb.buffer);
         bb.offset = copy.offset;
@@ -128,24 +125,23 @@ export class ByteBuffer {
         return this;
     }
 
-    public static from(buffer: any, encoding?: any, littleEndian?: boolean): ByteBuffer {
+    public static from(buffer: any, encoding?: any): ByteBuffer {
         if (typeof encoding !== 'string') {
-            littleEndian = encoding;
             encoding = undefined;
         }
         if (typeof buffer === 'string') {
             if (typeof encoding === 'undefined') encoding = 'utf8';
             switch (encoding) {
                 case 'base64':
-                    return ByteBuffer.fromBase64(buffer, littleEndian);
+                    return ByteBuffer.fromBase64(buffer);
                 case 'hex':
-                    return ByteBuffer.fromHex(buffer, littleEndian);
+                    return ByteBuffer.fromHex(buffer);
                 case 'binary':
-                    return ByteBuffer.fromBinary(buffer, littleEndian);
+                    return ByteBuffer.fromBinary(buffer);
                 case 'utf8':
-                    return ByteBuffer.fromUTF8(buffer, littleEndian);
+                    return ByteBuffer.fromUTF8(buffer);
                 // case 'debug':
-                //     return ByteBuffer.fromDebug(buffer, littleEndian);
+                //     return ByteBuffer.fromDebug(buffer);
                 default:
                     throw Error('Unsupported encoding: ' + encoding);
             }
@@ -159,7 +155,7 @@ export class ByteBuffer {
         }
         if (buffer instanceof Uint8Array) {
             // Extract ArrayBuffer from Uint8Array
-            bb = new ByteBuffer(0, littleEndian);
+            bb = new ByteBuffer(0);
             if (buffer.length > 0) {
                 // Avoid references to more than one EMPTY_BUFFER
                 bb.buffer = buffer.buffer;
@@ -169,7 +165,7 @@ export class ByteBuffer {
             }
         } else if (buffer instanceof ArrayBuffer) {
             // Reuse ArrayBuffer
-            bb = new ByteBuffer(0, littleEndian);
+            bb = new ByteBuffer(0);
             if (buffer.byteLength > 0) {
                 bb.buffer = buffer;
                 bb.offset = 0;
@@ -178,7 +174,7 @@ export class ByteBuffer {
             }
         } else if (Object.prototype.toString.call(buffer) === '[object Array]') {
             // Create from octets
-            bb = new ByteBuffer(buffer.length, littleEndian);
+            bb = new ByteBuffer(buffer.length);
             bb.limit = buffer.length;
             for (let i = 0; i < buffer.length; ++i) bb.view[i] = buffer[i];
         } else throw TypeError('Illegal buffer'); // Otherwise fail
@@ -196,8 +192,8 @@ export class ByteBuffer {
         return this;
     }
 
-    public allocate(capacity?: number, littleEndian?: boolean) {
-        return new ByteBuffer(capacity, littleEndian);
+    public allocate(capacity?: number) {
+        return new ByteBuffer(capacity);
     }
 
     public append(source: ByteBuffer | Uint8Array | ArrayBuffer | string, encoding?: any, offset?: number) {
@@ -225,9 +221,8 @@ export class ByteBuffer {
         return this;
     }
 
-    public concat(buffers, encoding, littleEndian?: boolean) {
+    public concat(buffers, encoding) {
         if (typeof encoding === 'boolean' || typeof encoding !== 'string') {
-            littleEndian = encoding;
             encoding = undefined;
         }
         let capacity = 0;
@@ -237,8 +232,8 @@ export class ByteBuffer {
             length = buffers[i].limit - buffers[i].offset;
             if (length > 0) capacity += length;
         }
-        if (capacity === 0) return new ByteBuffer(0, littleEndian);
-        const bb = new ByteBuffer(capacity, littleEndian);
+        if (capacity === 0) return new ByteBuffer(0);
+        const bb = new ByteBuffer(capacity);
         let bi;
         let i = 0;
         while (i < k) {
@@ -260,9 +255,9 @@ export class ByteBuffer {
         end >>>= 0;
         if (begin < 0 || begin > end || end > this.buffer.byteLength) throw RangeError('Illegal range: 0 <= ' + begin + ' <= ' + end + ' <= ' + this.buffer.byteLength);
 
-        if (begin === end) return new ByteBuffer(0, this.littleEndian);
+        if (begin === end) return new ByteBuffer(0);
         const capacity = end - begin,
-            bb = new ByteBuffer(capacity, this.littleEndian);
+            bb = new ByteBuffer(capacity);
         bb.offset = 0;
         bb.limit = capacity;
         if (bb.markedOffset >= 0) bb.markedOffset -= begin;
@@ -324,7 +319,7 @@ export class ByteBuffer {
 
         const start = offset;
         const len = this.readVarint32(offset);
-        const str = this.readUTF8String(len['value'], ByteBuffer.METRICS_BYTES, (offset += len['length']));
+        const str = this.readUTF8String(len['value'], (offset += len['length']));
         offset += str['length'];
         if (relative) {
             this.offset = offset;
@@ -428,13 +423,8 @@ export class ByteBuffer {
         let capacity3 = this.buffer.byteLength;
         if (offset > capacity3) this.resize((capacity3 *= 2) > offset ? capacity3 : offset);
         offset -= 2;
-        if (this.littleEndian) {
-            this.view[offset + 1] = (value & 0xff00) >>> 8;
-            this.view[offset] = value & 0x00ff;
-        } else {
-            this.view[offset] = (value & 0xff00) >>> 8;
-            this.view[offset + 1] = value & 0x00ff;
-        }
+        this.view[offset + 1] = (value & 0xff00) >>> 8;
+        this.view[offset] = value & 0x00ff;
         if (relative) this.offset += 2;
         return this;
     }
@@ -454,13 +444,8 @@ export class ByteBuffer {
         offset = BBAssert.checkRange(offset, this.buffer.byteLength, 2);
 
         let value = 0;
-        if (this.littleEndian) {
-            value = this.view[offset];
-            value |= this.view[offset + 1] << 8;
-        } else {
-            value = this.view[offset] << 8;
-            value |= this.view[offset + 1];
-        }
+        value = this.view[offset];
+        value |= this.view[offset + 1] << 8;
         if (relative) this.offset += 2;
         return value;
     }
@@ -483,17 +468,10 @@ export class ByteBuffer {
         let capacity5 = this.buffer.byteLength;
         if (offset > capacity5) this.resize((capacity5 *= 2) > offset ? capacity5 : offset);
         offset -= 4;
-        if (this.littleEndian) {
-            this.view[offset + 3] = (value >>> 24) & 0xff;
-            this.view[offset + 2] = (value >>> 16) & 0xff;
-            this.view[offset + 1] = (value >>> 8) & 0xff;
-            this.view[offset] = value & 0xff;
-        } else {
-            this.view[offset] = (value >>> 24) & 0xff;
-            this.view[offset + 1] = (value >>> 16) & 0xff;
-            this.view[offset + 2] = (value >>> 8) & 0xff;
-            this.view[offset + 3] = value & 0xff;
-        }
+        this.view[offset + 3] = (value >>> 24) & 0xff;
+        this.view[offset + 2] = (value >>> 16) & 0xff;
+        this.view[offset + 1] = (value >>> 8) & 0xff;
+        this.view[offset] = value & 0xff;
         if (relative) this.offset += 4;
         return this;
     }
@@ -513,17 +491,10 @@ export class ByteBuffer {
         offset = BBAssert.checkRange(offset, this.buffer.byteLength, 4);
 
         let value = 0;
-        if (this.littleEndian) {
-            value = this.view[offset + 2] << 16;
-            value |= this.view[offset + 1] << 8;
-            value |= this.view[offset];
-            value += (this.view[offset + 3] << 24) >>> 0;
-        } else {
-            value = this.view[offset + 1] << 16;
-            value |= this.view[offset + 2] << 8;
-            value |= this.view[offset + 3];
-            value += (this.view[offset] << 24) >>> 0;
-        }
+        value = this.view[offset + 2] << 16;
+        value |= this.view[offset + 1] << 8;
+        value |= this.view[offset];
+        value += (this.view[offset + 3] << 24) >>> 0;
         if (relative) this.offset += 4;
         return value;
     }
@@ -547,29 +518,17 @@ export class ByteBuffer {
         let capacity7 = this.buffer.byteLength;
         if (offset > capacity7) this.resize((capacity7 *= 2) > offset ? capacity7 : offset);
         offset -= 8;
-        const lo = longValue.low,
-            hi = longValue.high;
-        if (this.littleEndian) {
-            this.view[offset + 3] = (lo >>> 24) & 0xff;
-            this.view[offset + 2] = (lo >>> 16) & 0xff;
-            this.view[offset + 1] = (lo >>> 8) & 0xff;
-            this.view[offset] = lo & 0xff;
-            offset += 4;
-            this.view[offset + 3] = (hi >>> 24) & 0xff;
-            this.view[offset + 2] = (hi >>> 16) & 0xff;
-            this.view[offset + 1] = (hi >>> 8) & 0xff;
-            this.view[offset] = hi & 0xff;
-        } else {
-            this.view[offset] = (hi >>> 24) & 0xff;
-            this.view[offset + 1] = (hi >>> 16) & 0xff;
-            this.view[offset + 2] = (hi >>> 8) & 0xff;
-            this.view[offset + 3] = hi & 0xff;
-            offset += 4;
-            this.view[offset] = (lo >>> 24) & 0xff;
-            this.view[offset + 1] = (lo >>> 16) & 0xff;
-            this.view[offset + 2] = (lo >>> 8) & 0xff;
-            this.view[offset + 3] = lo & 0xff;
-        }
+        const lo = longValue.low;
+        const hi = longValue.high;
+        this.view[offset + 3] = (lo >>> 24) & 0xff;
+        this.view[offset + 2] = (lo >>> 16) & 0xff;
+        this.view[offset + 1] = (lo >>> 8) & 0xff;
+        this.view[offset] = lo & 0xff;
+        offset += 4;
+        this.view[offset + 3] = (hi >>> 24) & 0xff;
+        this.view[offset + 2] = (hi >>> 16) & 0xff;
+        this.view[offset + 1] = (hi >>> 8) & 0xff;
+        this.view[offset] = hi & 0xff;
         if (relative) this.offset += 8;
         return this;
     }
@@ -587,27 +546,15 @@ export class ByteBuffer {
 
         let lo = 0,
             hi = 0;
-        if (this.littleEndian) {
-            lo = this.view[offset + 2] << 16;
-            lo |= this.view[offset + 1] << 8;
-            lo |= this.view[offset];
-            lo += (this.view[offset + 3] << 24) >>> 0;
-            offset += 4;
-            hi = this.view[offset + 2] << 16;
-            hi |= this.view[offset + 1] << 8;
-            hi |= this.view[offset];
-            hi += (this.view[offset + 3] << 24) >>> 0;
-        } else {
-            hi = this.view[offset + 1] << 16;
-            hi |= this.view[offset + 2] << 8;
-            hi |= this.view[offset + 3];
-            hi += (this.view[offset] << 24) >>> 0;
-            offset += 4;
-            lo = this.view[offset + 1] << 16;
-            lo |= this.view[offset + 2] << 8;
-            lo |= this.view[offset + 3];
-            lo += (this.view[offset] << 24) >>> 0;
-        }
+        lo = this.view[offset + 2] << 16;
+        lo |= this.view[offset + 1] << 8;
+        lo |= this.view[offset];
+        lo += (this.view[offset + 3] << 24) >>> 0;
+        offset += 4;
+        hi = this.view[offset + 2] << 16;
+        hi |= this.view[offset + 1] << 8;
+        hi |= this.view[offset];
+        hi += (this.view[offset + 3] << 24) >>> 0;
         const value = new Long(lo, hi, false);
         if (relative) this.offset += 8;
         return value;
@@ -673,65 +620,36 @@ export class ByteBuffer {
         return size;
     }
 
-    public readUTF8String(length, metrics, offset) {
-        if (typeof metrics === 'number') {
-            offset = metrics;
-            metrics = undefined;
-        }
+    public readUTF8String(length: number, offset: number) {
         const relative = typeof offset === 'undefined';
         if (relative) offset = this.offset;
-        if (typeof metrics === 'undefined') metrics = ByteBuffer.METRICS_CHARS;
         if (typeof length !== 'number' || length % 1 !== 0) throw TypeError('Illegal length: ' + length + ' (not an integer)');
         length |= 0;
         offset = BBAssert.checkInteger(offset);
         offset >>>= 0;
         offset = BBAssert.checkRange(offset, this.buffer.byteLength);
 
-        let i = 0;
         const start = offset;
         let sd;
-        if (metrics === ByteBuffer.METRICS_CHARS) {
-            // The same for node and the browser
-            sd = stringDestination();
-            utfx.decodeUTF8(
-                () => {
-                    return i < length && offset < this.limit ? this.view[offset++] : null;
-                },
-                function (cp) {
-                    ++i;
-                    utfx.UTF8toUTF16(cp, sd);
-                },
-            );
-            if (i !== length) throw RangeError('Illegal range: Truncated data, ' + i + ' == ' + length);
-            if (relative) {
-                this.offset = offset;
-                return sd();
-            } else {
-                return {
-                    string: sd(),
-                    length: offset - start,
-                };
-            }
-        } else if (metrics === ByteBuffer.METRICS_BYTES) {
-            offset = BBAssert.checkInteger(offset);
-            offset >>>= 0;
-            if (offset < 0 || offset + length > this.buffer.byteLength) throw RangeError('Illegal offset: 0 <= ' + offset + ' (+' + length + ') <= ' + this.buffer.byteLength);
 
-            const k = offset + length;
-            utfx.decodeUTF8toUTF16(() => {
-                return offset < k ? this.view[offset++] : null;
-            }, (sd = stringDestination()));
-            if (offset !== k) throw RangeError('Illegal range: Truncated data, ' + offset + ' == ' + k);
-            if (relative) {
-                this.offset = offset;
-                return sd();
-            } else {
-                return {
-                    string: sd(),
-                    length: offset - start,
-                };
-            }
-        } else throw TypeError('Unsupported metrics: ' + metrics);
+        offset = BBAssert.checkInteger(offset);
+        offset >>>= 0;
+        if (offset < 0 || offset + length > this.buffer.byteLength) throw RangeError('Illegal offset: 0 <= ' + offset + ' (+' + length + ') <= ' + this.buffer.byteLength);
+
+        const k = offset + length;
+        utfx.decodeUTF8toUTF16(() => {
+            return offset < k ? this.view[offset++] : null;
+        }, (sd = stringDestination()));
+        if (offset !== k) throw RangeError('Illegal range: Truncated data, ' + offset + ' == ' + k);
+        if (relative) {
+            this.offset = offset;
+            return sd();
+        } else {
+            return {
+                string: sd(),
+                length: offset - start,
+            };
+        }
     }
 
     toBuffer(forceCopy?: boolean) {
