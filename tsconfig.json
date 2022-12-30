@@ -24,6 +24,6 @@
         "strictPropertyInitialization": false,
         "target": "esnext"
     },
-    "include": ["src", "src/examples"],
+    "include": ["src"],
     "exclude": ["node_modules", "**/__tests__/**", "**/examples/**"]
 }
