@@ -18,15 +18,13 @@ export class Memo {
         this.memoPrefix = memoPrefix;
         this.addressPrefix = addressPrefix;
         this.regexPattern = new RegExp(`^${this.memoPrefix}`, 'gi');
-
-        setTimeout(async () => {
-            await this.checkEncryption();
-        }, 0);
     }
 
     public async encode(memo: string, publicKey: string | PublicKey, privateKey: string | PrivateKey, testNonce?: string) {
         if (!memo) return memo;
         if (memo.match(this.regexPattern)) memo = memo.substring(this.memoPrefix.length);
+
+        await this.checkEncryption();
 
         const mbuf = new ByteBuffer();
         mbuf.writeVString(memo);
@@ -51,6 +49,8 @@ export class Memo {
     public async decode(memo: string, privateKey: string | PrivateKey, memoPrefix = false) {
         if (!memo) return memo;
         if (memo.match(this.regexPattern)) memo = memo.substring(this.memoPrefix.length);
+
+        await this.checkEncryption();
 
         const privKey = PrivateKey.from(privateKey);
         const pubkey = privKey.createPublic();
