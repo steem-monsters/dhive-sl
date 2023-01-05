@@ -229,7 +229,7 @@ export class ClientFetch {
                 await this.loadNodes();
             }
         }
-
+        hasNodes = this.nodes && this.nodes.some((node) => !node.disabled);
         if (!hasNodes) throw Error('Nodes are missing. Either set nodes manually or run client.loadNodes()');
 
         const request: RPCCall =
