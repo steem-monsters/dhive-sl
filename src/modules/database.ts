@@ -3,10 +3,10 @@ import { AppliedOperation, OperationName, VirtualOperationName } from '../chain/
 import { BlockHeader, SignedBlock } from '../chain/block';
 import { ChainProperties, VestingDelegation } from '../chain/misc';
 import { ClientFetch } from '../clientFetch';
-import { Discussion } from '../chain/comment';
 import { DynamicGlobalProperties } from '../chain/misc';
 import { KeyRole, PublicKey } from '../chain/keys';
 import { LogLevel, log } from '../utils/utils';
+import { Post } from '../chain';
 import { Price } from '../chain/asset';
 import { SignedTransaction, SignedTransactionInBlock } from '../chain/transaction';
 import { makeBitMaskFilter } from '../utils/bitmaskFilter';
@@ -198,7 +198,7 @@ export class DatabaseAPI {
      *           `feed` `hot` `promoted` `trending` `votes`. Note that
      *           for `blog` and `feed` the tag is set to a username.
      */
-    public getDiscussions(by: DiscussionQueryCategory, query: DisqussionQuery): Promise<Discussion[]> {
+    public getDiscussions(by: DiscussionQueryCategory, query: DisqussionQuery): Promise<Post[]> {
         return this.call(`get_discussions_by_${by}`, [query]);
     }
 
@@ -347,5 +347,21 @@ export class DatabaseAPI {
     /** return rpc node version */
     public async getVersion(): Promise<object> {
         return this.call('get_version', []);
+    }
+
+    public async getFollowers(account: string) {
+        return this.call('get_follow_count', [account]);
+    }
+
+    public async getFollowing(account: string, start = '', limit = 1000, fetchAll = false): Promise<string[]> {
+        let followers = await this.call('get_following', [account, start, 'blog', limit]);
+        let totalFollowers = followers.length > 0 ? followers : [];
+        if (fetchAll) {
+            while (followers.length >= 99) {
+                followers = await this.call('get_following', [account, followers[followers.length - 1].following.toString(), 'blog', limit]);
+                if (followers.length > 0) totalFollowers = totalFollowers.concat(totalFollowers, followers);
+            }
+        }
+        return totalFollowers.map((follower) => follower.following) as string[];
     }
 }

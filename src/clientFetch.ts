@@ -63,6 +63,11 @@ export class ClientFetch {
     public isInitialized: boolean;
 
     /**
+     * Whether loadNodes is in-progress
+     */
+    private isLoading: boolean;
+
+    /**
      * Timeout for RPC fetch
      */
     private timeout: number;
@@ -158,6 +163,7 @@ export class ClientFetch {
 
     public async loadNodes() {
         // hiveengine is not yet supported for beacon
+        this.isLoading = true;
         if (this.fetchType === 'hive') {
             const fn = async (isInterval: boolean) => {
                 const beaconNodes = await this.beacon.loadNodes(isInterval);
@@ -198,6 +204,7 @@ export class ClientFetch {
             }
         }
         if (this.nodes.some((node) => !node.disabled)) this.isInitialized = true;
+        this.isLoading = false;
     }
 
     /**
@@ -209,31 +216,21 @@ export class ClientFetch {
      *
      */
     public async call<T = any>(method: string, params: any = []): Promise<T> {
-        /**
-         * Nodes aren't set yet
-         */
-        if (!this.isInitialized && this.fetchType === 'hive') {
-            /**
-             * Beacon nodes loading hasn't started yet and no nodes have been given as parameter
-             */
-            if (!this.beacon.loadOnInitialize && (!this.nodes || this.nodes.length <= 0)) {
-                /**
-                 * Load beacon nodes
-                 */
-                await this.loadNodes();
-            } else if (this.beacon.loadOnInitialize) {
-                /**
-                 * Beacon nodes loading is in progress
-                 */
-                for (let i = 0; i < 100; i++) {
-                    // Waiting 5 seconds in 50ms steps
+        let hasNodes = this.nodes && this.nodes.some((node) => !node.disabled);
+        if (!hasNodes && this.fetchType === 'hive') {
+            if (this.isLoading) {
+                for (let i = 0; i < 200; i++) {
+                    // Waiting 10 seconds in 50ms steps
                     await timeout(50);
-                    if (this.isInitialized) break;
+                    hasNodes = this.nodes && this.nodes.some((node) => !node.disabled);
+                    if (hasNodes) break;
                 }
+            } else {
+                await this.loadNodes();
             }
         }
 
-        if (!this.nodes.some((node) => !node.disabled)) throw Error('Nodes are missing. Either set nodes manually or run client.loadNodes()');
+        if (!hasNodes) throw Error('Nodes are missing. Either set nodes manually or run client.loadNodes()');
 
         const request: RPCCall =
             this.fetchType === 'hive'

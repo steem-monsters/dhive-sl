@@ -1,4 +1,4 @@
-import { BroadcastAPI, CustomJsonOperation, CustomOperation, PrivateKey, PublicKey, Signature, Transaction } from '..';
+import { CustomJsonOperation, PrivateKey, PublicKey, Signature, Transaction } from '..';
 import { TEST_CLIENT } from './common';
 import { generateUniqueNounce } from '../utils/utils';
 import { hash } from '../crypto/hash';
@@ -33,6 +33,9 @@ describe('crypto', function () {
         const k5 = PublicKey.from(nullKey);
         expect(k5.toString()).toEqual(nullKey);
         expect(k5.key).toEqual(new Uint8Array(33));
+
+        const eoskey = '5KGW4K9LaETePPa44p9TDJxYPkHgWuZjKA83bFpeT1pkvWUtN8d';
+        expect(PrivateKey.from(eoskey).createPublic('EOS').toString()).toEqual('EOS5HkDFSssD71AaYEC3mS7WH9ug9kGCBn12sf2xbSkR1ABtWL4wD');
     });
 
     it('should decode private keys', function () {

@@ -1,6 +1,6 @@
 import { Asset, PriceType } from './asset';
 import { AuthorityType } from './account';
-import { BeneficiaryRoute } from './comment';
+import { BeneficiaryRoute } from './hivemind';
 import { ChainProperties } from './misc';
 import { PublicKey } from './keys';
 import { SignedBlockHeader } from './block';

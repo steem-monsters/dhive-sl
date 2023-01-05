@@ -1,7 +1,6 @@
 export * from './account';
 export * from './asset';
 export * from './block';
-export * from './comment';
 export * from './hivemind';
 export * from './memo';
 export * from './misc';
