@@ -64,4 +64,8 @@ export class HiveEngineTokensContractsApi {
     public getTokens(options?: HiveEngineContractsOptions) {
         return this.contracts.find(this.id, 'tokens', {}, options);
     }
+
+    public getToken(symbol: HiveEngineAssetSymbol, options?: HiveEngineContractsOptions) {
+        return this.contracts.find(this.id, 'tokens', { symbol }, options);
+    }
 }
