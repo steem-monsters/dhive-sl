@@ -86,5 +86,10 @@ describe('hive-engine api', function () {
         expect(response[0].symbol).toBe('BETA');
         expect(response[1].symbol).toBe('UNTAMED');
     });
+
+    it('should get a specific token', async () => {
+        const response = await TEST_CLIENT.engine.tokens.getToken('DEC');
+        expect(response.symbol).toBe('DEC');
+    });
 });
 // hive.fund
