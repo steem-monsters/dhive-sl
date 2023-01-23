@@ -76,8 +76,8 @@ export class HiveEngineTokensContractsApi extends HiveEngineContract<HiveEngineT
         return this.find<HiveEngineTokenBalance[]>('balances', query, options);
     }
 
-    public getToken(symbol: string, options?: HiveEngineContractsOptions) {
-        return this.find<HiveEngineToken>('tokens', { symbol }, options);
+    public getToken(symbol: string) {
+        return this.findOne<HiveEngineToken>('tokens', { symbol });
     }
 
     public getTokens(symbols: string[] = [], options?: HiveEngineContractsOptions) {
