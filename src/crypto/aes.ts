@@ -1,9 +1,11 @@
 // modified from source: https://github.com/ethereum/js-ethereum-cryptography/blob/master/src/aes.ts
 
 import { concatBytes } from '@noble/hashes/utils';
-import { crypto } from '@noble/hashes/crypto';
+import { crypto as cr } from '@noble/hashes/crypto';
 import { hexToBytes } from './utils';
 import { isArrayEqual } from '../utils/utils';
+
+const crypto = cr?.node ? { node: cr.node } : cr?.web ? { web: cr.web } : { web: cr };
 
 const validateOpt = (key: Uint8Array, iv: Uint8Array, mode: string) => {
     if (!mode.startsWith('aes-')) throw new Error(`AES submodule doesn't support mode ${mode}`);
@@ -18,7 +20,9 @@ const getBrowserKey = async (mode: string, key: Uint8Array, iv: Uint8Array): Pro
     if (!keyMode) throw new Error('AES: unsupported mode');
 
     const wKey = await crypto.web.subtle.importKey('raw', key, { name: `AES-${keyMode.toUpperCase()}`, length: key.length * 8 }, true, ['encrypt', 'decrypt']);
-    return [wKey, { name: `aes-${keyMode}`, iv, counter: iv, length: 64 }];
+    // node.js uses whole 128 bit as a counter, without nonce, instead of 64 bit
+    // recommended by NIST SP800-38A
+    return [wKey, { name: `aes-${keyMode}`, iv, counter: iv, length: 128 }];
 };
 
 async function encrypt(mode: string, msg: Uint8Array, key: Uint8Array, iv: Uint8Array, pkcs7PaddingEnabled = true): Promise<Uint8Array> {
