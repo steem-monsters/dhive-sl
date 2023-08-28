@@ -1,8 +1,8 @@
-import { VError } from 'verror';
 import { Client } from '..';
-import { timeout } from '../utils';
+import { HiveEngineClient } from '../engine/client';
 import { TEST_CLIENT } from './common';
-import { HiveEngineClient } from '../modules/engine/engine';
+import { VError } from 'verror';
+import { timeout } from '../utils/utils';
 
 describe('TEST_CLIENT', function () {
     // this.slow(200);
@@ -58,12 +58,12 @@ describe('TEST_CLIENT', function () {
     });
 
     it('should correctly queue customJson broadcasts', () => {
-        const nothing = (TEST_CLIENT as any).peekTransactionAccount();
-        expect(nothing).toBeUndefined();
+        const nothing = TEST_CLIENT.transactionQueue.peekTransactionAccount();
+        expect(!nothing).toBeTruthy();
         // Do not await, since we are not processing transactions right now.
         TEST_CLIENT.broadcast.customJsonQueue({ id: 'some_random_json1', json: { id: 12 }, account: 'someaccount', role: 'posting' }, 'some-private-key');
         TEST_CLIENT.broadcast.customJsonQueue({ id: 'some_random_json2', json: { id: 22 }, account: 'otheraccount', role: 'posting' }, 'some-private-key');
-        const account = (TEST_CLIENT as any).peekTransactionAccount();
+        const account = TEST_CLIENT.transactionQueue.peekTransactionAccount();
         expect(account).toBe('someaccount');
     });
 

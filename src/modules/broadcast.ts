@@ -1,9 +1,3 @@
-/**
- * @file Broadcast API helpers.
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
 import {
     AccountUpdateOperation,
     ChangeRecoveryAccountOperation,
@@ -14,14 +8,22 @@ import {
     TransferOperation,
     VoteOperation,
 } from '../chain/operation';
+import { ClientFetch } from '../clientFetch';
+import { CreateAccountOptions, CustomJsonOptions, DelegateRCOperation, OperationAPI, UpdateAccountAuthorityOperation, UpdateAccountAuthorityThreshold } from './operation';
+import { DatabaseAPI } from './database';
+import { LogLevel, log } from '../utils/utils';
+import { PrivateKey, PrivateKeyArg } from '../chain/keys';
 import { SignedTransaction, Transaction, TransactionConfirmation } from '../chain/transaction';
-import { log } from '../utils';
-import { Client } from '../client';
-import { PrivateKey, PrivateKeyArg } from '../chain/keys/keys';
-import { CreateAccountOptions, CustomJsonOptions, DelegateRCOperation, UpdateAccountAuthorityOperation, UpdateAccountAuthorityThreshold } from './operation';
+import { TransactionQueue } from '../utils/transactionQueue';
 
 export class BroadcastAPI {
-    constructor(readonly client: Client) {}
+    constructor(
+        private readonly fetch: ClientFetch,
+        private readonly operations: OperationAPI,
+        private readonly database: DatabaseAPI,
+        private readonly transactionQueue: TransactionQueue,
+        private readonly chainId: Uint8Array,
+    ) {}
 
     /**
      * Broadcast a comment, also used to create a new top level post.
@@ -29,7 +31,7 @@ export class BroadcastAPI {
      * @param key Private posting key of comment author.
      */
     public async comment(data: CommentOperation[1], key: PrivateKeyArg) {
-        const op = this.client.operation.comment(data);
+        const op = this.operations.comment(data);
         return this.sendOperations([op], key);
     }
 
@@ -40,7 +42,7 @@ export class BroadcastAPI {
      * @param key Private posting key of comment author.
      */
     public async commentWithOptions(data: CommentOperation[1], options: CommentOptionsOperation[1], key: PrivateKeyArg) {
-        const ops = this.client.operation.commentWithOptions(data, options);
+        const ops = this.operations.commentWithOptions(data, options);
         return this.sendOperations(ops, key);
     }
 
@@ -50,7 +52,7 @@ export class BroadcastAPI {
      * @param key Private posting key of the voter.
      */
     public async vote(data: VoteOperation[1], key: PrivateKeyArg) {
-        const op = this.client.operation.vote(data);
+        const op = this.operations.vote(data);
         return this.sendOperations([op], key);
     }
 
@@ -60,7 +62,7 @@ export class BroadcastAPI {
      * @param key Private active key of sender.
      */
     public async transfer(data: TransferOperation[1], key: PrivateKeyArg) {
-        const op = this.client.operation.transfer(data);
+        const op = this.operations.transfer(data);
         return this.sendOperations([op], key);
     }
 
@@ -70,20 +72,20 @@ export class BroadcastAPI {
      * @param key Private posting or active key.
      */
     public async customJson(data: CustomJsonOptions, key: PrivateKeyArg) {
-        const op = this.client.operation.customJson(data);
+        const op = this.operations.customJson(data);
         return this.sendOperations([op], key);
     }
 
-    public async customJsonQueue(data: CustomJsonOptions, key: PrivateKeyArg) {
+    public async customJsonQueue(data: CustomJsonOptions, key: PrivateKeyArg): Promise<TransactionConfirmation> {
         return new Promise((resolve, reject) => {
-            this.client.queueTransaction(data, key, (data: CustomJsonOptions, key: PrivateKeyArg) =>
+            this.transactionQueue.queueTransaction(data, key, (data: CustomJsonOptions, key: PrivateKeyArg) =>
                 this.customJson(data, key)
                     .then((r) => {
-                        log(`Custom JSON [${data.id}] broadcast successfully - Tx: [${r.id}].`, 3);
+                        log(`Custom JSON [${data.id}] broadcast successfully - Tx: [${r.id}].`, LogLevel.Debug);
                         resolve(r);
                     })
                     .catch(async (e) => {
-                        log(`Error broadcasting custom_json [${data.id}]. Error: ${e}`, 1, 'Red');
+                        log(`Error broadcasting custom_json [${data.id}]. Error: ${e}`, LogLevel.Error, 'Red');
                         reject(e);
                     }),
             );
@@ -96,7 +98,7 @@ export class BroadcastAPI {
      * @param key Private active key of account creator.
      */
     public async createTestAccount(options: CreateAccountOptions, key: PrivateKeyArg) {
-        const ops = await this.client.operation.createTestAccount(options);
+        const ops = await this.operations.createTestAccount(options);
         return this.sendOperations(ops, key);
     }
 
@@ -107,7 +109,7 @@ export class BroadcastAPI {
      *            key level or higher for updating account authorities.
      */
     public async updateAccount(data: AccountUpdateOperation[1], key: PrivateKeyArg) {
-        const op = this.client.operation.updateAccount(data);
+        const op = this.operations.updateAccount(data);
         return this.sendOperations([op], key);
     }
 
@@ -115,7 +117,7 @@ export class BroadcastAPI {
      * Updates account authority and adds/removes specific account/key as [owner/active/posting] authority or sets memo-key
      */
     public async updateAccountAuthority(data: UpdateAccountAuthorityOperation, key: PrivateKeyArg) {
-        const op = await this.client.operation.updateAccountAuthority(data);
+        const op = await this.operations.updateAccountAuthority(data);
         return this.sendOperations([op], key);
     }
 
@@ -123,7 +125,7 @@ export class BroadcastAPI {
      * Changes authority threshold. Default is at 1. This changes how many keys/account authorities you need to successfuly sign & broadcast a transaction
      */
     public async updateAccountAuthorityThreshold(data: UpdateAccountAuthorityThreshold, key: PrivateKeyArg) {
-        const op = await this.client.operation.updateAccountAuthorityThreshold(data);
+        const op = await this.operations.updateAccountAuthorityThreshold(data);
         return this.sendOperations([op], key);
     }
 
@@ -131,7 +133,7 @@ export class BroadcastAPI {
      * Start account recovery request. Requires private owner key of account to recover.
      */
     public changeRecoveryAccount(data: ChangeRecoveryAccountOperation[1], ownerKey: string | PrivateKey | string[] | PrivateKey[]) {
-        const op = this.client.operation.changeRecoveryAccount(data);
+        const op = this.operations.changeRecoveryAccount(data);
         return this.sendOperations([op], ownerKey);
     }
 
@@ -148,7 +150,7 @@ export class BroadcastAPI {
      * @param key Private active key of the delegator.
      */
     public async delegateVestingShares(data: DelegateVestingSharesOperation[1], key: PrivateKeyArg) {
-        const op = this.client.operation.delegateVestingShares(data);
+        const op = this.operations.delegateVestingShares(data);
         return this.sendOperations([op], key);
     }
 
@@ -160,7 +162,7 @@ export class BroadcastAPI {
      * Example for max_rc: '5 RC' or '5000000000 RCS' or RCAsset.from(5, 'RC')
      */
     public async delegateRC(data: DelegateRCOperation, key: PrivateKeyArg) {
-        const op = this.client.operation.delegateRC(data);
+        const op = this.operations.delegateRC(data);
         return this.sendOperations([op], key);
     }
 
@@ -173,7 +175,6 @@ export class BroadcastAPI {
         const tx = await this.createTransaction(ops);
         const signedTx = this.sign(tx, key);
         return this.send(signedTx);
-        // assert(result.expired === false, 'transaction expired');
     }
 
     /**
@@ -182,7 +183,7 @@ export class BroadcastAPI {
      */
     public async createTransaction(op: Operation | Operation[]) {
         const ops = (typeof op[0] === 'string' ? [op] : op) as Operation[];
-        const txSignProperties = await this.client.database.getTxSignProperties();
+        const txSignProperties = await this.database.getTxSignProperties();
         return Transaction.from(txSignProperties, ops);
     }
 
@@ -202,7 +203,7 @@ export class BroadcastAPI {
      */
     public sign(transaction: Transaction, key: PrivateKeyArg): SignedTransaction {
         const tx = transaction instanceof Transaction ? transaction : new Transaction(transaction);
-        return tx.sign(key, this.client.chainId);
+        return tx.sign(key, this.chainId);
     }
 
     /**
@@ -219,6 +220,6 @@ export class BroadcastAPI {
      * Convenience for calling `condenser_api`.
      */
     public call(method: string, params?: any[]) {
-        return this.client.call('condenser_api', method, params);
+        return this.fetch.call(`condenser_api.${method}`, params);
     }
 }

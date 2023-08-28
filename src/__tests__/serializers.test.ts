@@ -1,6 +1,6 @@
-import assert from 'assert';
-import ByteBuffer from 'bytebuffer';
-import { Types, Serializer, HexBuffer } from '..';
+import { ByteBuffer } from '../crypto/bytebuffer';
+import { Serializer, Types } from '..';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 /*
  Serializer tests in the format:
@@ -10,10 +10,10 @@ import { Types, Serializer, HexBuffer } from '..';
 const serializerTests = require('./serializer-tests.json');
 
 function serialize(serializer: Serializer, data: any) {
-    const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
+    const buffer = new ByteBuffer();
     serializer(buffer, data);
     buffer.flip();
-    return Buffer.from(buffer.toBuffer()).toString('hex');
+    return bytesToHex(Uint8Array.from(buffer.toBuffer()));
 }
 
 describe('serializers', function () {
@@ -28,39 +28,39 @@ describe('serializers', function () {
             }
             for (const [expected, value] of test.values) {
                 const actual = serialize(serializer, value);
-                assert.equal(actual, expected);
+                expect(actual).toEqual(expected);
             }
         });
     }
 
     it('Binary', function () {
-        const data = HexBuffer.from('026400c800');
-        const r1 = serialize(Types.Binary(), HexBuffer.from([0x80, 0x00, 0x80]));
-        assert.equal(r1, '03800080');
-        const r2 = serialize(Types.Binary(), HexBuffer.from(Buffer.from('026400c800', 'hex')));
-        assert.equal(r2, '05026400c800');
-        const r3 = serialize(Types.Binary(5), HexBuffer.from(data));
-        assert.equal(r3, '026400c800');
-        assert.throws(() => {
+        const data = hexToBytes('026400c800');
+        const r1 = serialize(Types.Binary(), Uint8Array.from([0x80, 0x00, 0x80]));
+        expect(r1).toEqual('03800080');
+        const r2 = serialize(Types.Binary(), hexToBytes('026400c800'));
+        expect(r2).toEqual('05026400c800');
+        const r3 = serialize(Types.Binary(5), data);
+        expect(r3).toEqual('026400c800');
+        expect(() => {
             serialize(Types.Binary(10), data);
-        });
+        }).toThrow();
     });
 
     it('Void', function () {
-        assert.throws(() => {
+        expect(() => {
             serialize(Types.Void, null);
-        });
+        }).toThrow();
     });
 
     it('Invalid Operations', function () {
-        assert.throws(() => {
+        expect(() => {
             serialize(Types.Operation, ['transfer', {}]);
-        });
-        assert.throws(() => {
+        }).toThrow();
+        expect(() => {
             serialize(Types.Operation, ['transfer', { from: 1 }]);
-        });
-        assert.throws(() => {
+        }).toThrow();
+        expect(() => {
             serialize(Types.Operation, ['transfer', 10]);
-        });
+        }).toThrow();
     });
 });

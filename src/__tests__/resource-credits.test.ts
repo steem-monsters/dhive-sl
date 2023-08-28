@@ -1,10 +1,8 @@
-import assert from 'assert';
-import { RCAsset } from '../chain/asset';
 import { RCAccount } from '../chain/rc';
+import { RCAsset } from '../chain/asset';
 import { TEST_CLIENT } from './common';
 
 describe('rc_api', function () {
-    // this.slow(500);
     jest.setTimeout(20 * 1000);
 
     it('should get RC Mana', async () => {
@@ -35,10 +33,10 @@ describe('rc_api', function () {
         };
 
         let bar = TEST_CLIENT.rc.calculateVPMana(account);
-        assert.equal(bar.percentage, 6181);
+        expect(bar.percentage).toEqual(6181);
         account.voting_manabar.last_update_time = 1537064449;
         bar = TEST_CLIENT.rc.calculateVPMana(account);
-        assert.equal(bar.percentage, 10000);
+        expect(bar.percentage).toEqual(10000);
     });
 
     it('calculateRCMana', () => {
@@ -59,10 +57,10 @@ describe('rc_api', function () {
         };
 
         let bar = TEST_CLIENT.rc.calculateRCMana(rc_account);
-        assert.equal(bar.percentage, 10000);
+        expect(bar.percentage).toEqual(10000);
         rc_account.rc_manabar.last_update_time = Date.now() / 1000;
         bar = TEST_CLIENT.rc.calculateRCMana(rc_account);
-        assert(bar.percentage >= 1000 && bar.percentage < 1100);
+        expect(bar.percentage >= 1000 && bar.percentage < 1100).toBeTruthy();
     });
 
     it('getRCDelegations', async () => {

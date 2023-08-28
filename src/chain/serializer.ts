@@ -1,61 +1,24 @@
-/**
- * @file Serializer
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
+import { Asset, PriceType } from './asset';
+import { ByteBuffer } from '../crypto/bytebuffer';
+import { Operation, WitnessSetPropertiesOperation } from './operation';
+import { PublicKey } from './keys';
 
-import ByteBuffer from 'bytebuffer';
-import { Asset } from './asset';
-import { PublicKey } from './keys/keys';
-import { HexBuffer } from './misc';
-import { Operation } from './operation';
-
-export type Serializer = (buffer: ByteBuffer, data: any) => void;
+export type Serializer = (buffer: ByteBuffer, data: any) => any;
 
 const VoidSerializer = () => {
     throw new Error('Void can not be serialized');
 };
 
-const StringSerializer = (buffer: ByteBuffer, data: string) => {
-    buffer.writeVString(data);
-};
-
-const Int8Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt8(data);
-};
-
-const Int16Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt16(data);
-};
-
-const Int32Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt32(data);
-};
-
-const Int64Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeInt64(data);
-};
-
-const UInt8Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint8(data);
-};
-
-const UInt16Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint16(data);
-};
-
-const UInt32Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint32(data);
-};
-
-const UInt64Serializer = (buffer: ByteBuffer, data: number) => {
-    buffer.writeUint64(data);
-};
-
-const BooleanSerializer = (buffer: ByteBuffer, data: boolean) => {
-    buffer.writeByte(data ? 1 : 0);
-};
-
+const StringSerializer = (buffer: ByteBuffer, data: string) => buffer.writeVString(data);
+const Int8Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt8(data);
+const Int16Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt16(data);
+const Int32Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt32(data);
+const Int64Serializer = (buffer: ByteBuffer, data: number) => buffer.writeInt64(data);
+const UInt8Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt8(data);
+const UInt16Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt16(data);
+const UInt32Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt32(data);
+const UInt64Serializer = (buffer: ByteBuffer, data: number) => buffer.writeUInt64(data);
+const BooleanSerializer = (buffer: ByteBuffer, data: boolean) => buffer.writeByte(data ? 1 : 0);
 const StaticVariantSerializer = (itemSerializers: Serializer[]) => (buffer: ByteBuffer, data: [number, any]) => {
     const [id, item] = data;
     buffer.writeVarint32(id);
@@ -71,34 +34,27 @@ const AssetSerializer = (buffer: ByteBuffer, data: Asset | string | number) => {
     const asset = Asset.from(data).steem_symbols();
     const precision = asset.getPrecision();
     buffer.writeInt64(Math.round(asset.amount * Math.pow(10, precision)));
-    buffer.writeUint8(precision);
+    buffer.writeUInt8(precision);
     for (let i = 0; i < 7; i++) {
-        buffer.writeUint8(asset.symbol.charCodeAt(i) || 0);
+        buffer.writeUInt8(asset.symbol.charCodeAt(i) || 0);
     }
 };
 
-const DateSerializer = (buffer: ByteBuffer, data: string) => {
-    buffer.writeUint32(Math.floor(new Date(data + 'Z').getTime() / 1000));
-};
+const DateSerializer = (buffer: ByteBuffer, data: string) => buffer.writeUInt32(Math.floor(new Date(data + 'Z').getTime() / 1000));
 
 const PublicKeySerializer = (buffer: ByteBuffer, data: PublicKey | string | null) => {
     if (data === null || (typeof data === 'string' && data.endsWith('1111111111111111111111111111111114T1Anm'))) {
-        buffer.append(Buffer.alloc(33, 0));
+        buffer.append(new Uint8Array(33));
     } else {
         buffer.append(PublicKey.from(data).key);
     }
 };
 
-const BinarySerializer = (size?: number) => (buffer: ByteBuffer, data: Buffer | HexBuffer) => {
-    data = HexBuffer.from(data);
-    const len = data.buffer.length;
+const BinarySerializer = (size?: number) => (buffer: ByteBuffer, data: Uint8Array) => {
+    const len = data.length;
     if (size) {
-        if (len !== size) {
-            throw new Error(`Unable to serialize binary. Expected ${size} bytes, got ${len}`);
-        }
-    } else {
-        buffer.writeVarint32(len);
-    }
+        if (len !== size) throw new Error(`Unable to serialize binary. Expected ${size} bytes, got ${len}`);
+    } else buffer.writeVarint32(len);
     buffer.append(data.buffer);
 };
 
@@ -181,6 +137,7 @@ const OperationDataSerializer = (operationId: number, definitions: [string, Seri
 };
 
 const OperationSerializers: { [name: string]: Serializer } = {};
+
 OperationSerializers.account_create = OperationDataSerializer(9, [
     ['fee', AssetSerializer],
     ['creator', StringSerializer],
@@ -592,4 +549,61 @@ export const Types = {
     UInt64: UInt64Serializer,
     UInt8: UInt8Serializer,
     Void: VoidSerializer,
+};
+
+export interface WitnessProps {
+    account_creation_fee?: string | Asset;
+    account_subsidy_budget?: number; // uint32_t
+    account_subsidy_decay?: number; // uint32_t
+    key: PublicKey | string;
+    maximum_block_size?: number; // uint32_t
+    new_signing_key?: PublicKey | string | null;
+    hbd_exchange_rate?: PriceType;
+    hbd_interest_rate?: number; // uint16_t
+    url?: string;
+}
+function serialize(serializer: Serializer, data: any) {
+    const buffer = new ByteBuffer();
+    serializer(buffer, data);
+    buffer.flip();
+    // `props` values must be hex
+    return buffer.toString('hex');
+}
+export const buildWitnessUpdateOp = (owner: string, props: WitnessProps): WitnessSetPropertiesOperation => {
+    const data: WitnessSetPropertiesOperation[1] = {
+        extensions: [],
+        owner,
+        props: [],
+    };
+    for (const key of Object.keys(props)) {
+        let type: Serializer;
+        switch (key) {
+            case 'key':
+            case 'new_signing_key':
+                type = Types.PublicKey;
+                break;
+            case 'account_subsidy_budget':
+            case 'account_subsidy_decay':
+            case 'maximum_block_size':
+                type = Types.UInt32;
+                break;
+            case 'hbd_interest_rate':
+                type = Types.UInt16;
+                break;
+            case 'url':
+                type = Types.String;
+                break;
+            case 'hbd_exchange_rate':
+                type = Types.Price;
+                break;
+            case 'account_creation_fee':
+                type = Types.Asset;
+                break;
+            default:
+                throw new Error(`Unknown witness prop: ${key}`);
+        }
+        data.props.push([key, serialize(type, props[key])]);
+    }
+    data.props.sort((a, b) => a[0].localeCompare(b[0]));
+    return ['witness_set_properties', data];
 };

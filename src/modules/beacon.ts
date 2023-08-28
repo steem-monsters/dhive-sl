@@ -1,10 +1,5 @@
-/**
- * @file Peakd Beacon helper
- * @author Wolf
- */
-
 import crossFetch from 'cross-fetch';
-import { prependHttp } from '../utils';
+import { prependHttp } from '../utils/utils';
 
 interface BeaconNodeBase {
     name: string;

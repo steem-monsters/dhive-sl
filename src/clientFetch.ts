@@ -1,8 +1,9 @@
-import assert from 'assert';
-import { BeaconAPI, BeaconNode } from './modules/beacon';
-import { copy, isTxError, log, prependHttp, timeout } from './utils';
-import { VError } from 'verror';
 import crossFetch from 'cross-fetch';
+import { BeaconAPI, BeaconNode } from './modules';
+import { LogLevel, copy, isTxError, log, prependHttp, timeout } from './utils/utils';
+import { VError } from 'verror';
+import { bytesToHex } from '@noble/hashes/utils';
+import { isTypedArray } from './crypto/utils';
 
 interface RPCRequest {
     /**
@@ -60,6 +61,11 @@ export class ClientFetch {
      * Toggle - true if nodes are set
      */
     public isInitialized: boolean;
+
+    /**
+     * Whether loadNodes is in-progress
+     */
+    private isLoading: boolean;
 
     /**
      * Timeout for RPC fetch
@@ -157,6 +163,7 @@ export class ClientFetch {
 
     public async loadNodes() {
         // hiveengine is not yet supported for beacon
+        this.isLoading = true;
         if (this.fetchType === 'hive') {
             const fn = async (isInterval: boolean) => {
                 const beaconNodes = await this.beacon.loadNodes(isInterval);
@@ -197,6 +204,7 @@ export class ClientFetch {
             }
         }
         if (this.nodes.some((node) => !node.disabled)) this.isInitialized = true;
+        this.isLoading = false;
     }
 
     /**
@@ -207,35 +215,22 @@ export class ClientFetch {
      * @param params  Array of parameters to pass to the method, optional.
      *
      */
-    public async call(method: string, params: any = []): Promise<any> {
-        /**
-         * Nodes aren't set yet
-         */
-        if (!this.isInitialized && this.fetchType === 'hive') {
-            /**
-             * Beacon nodes loading hasn't started yet and no nodes have been given as parameter
-             */
-            if (!this.beacon.loadOnInitialize && (!this.nodes || this.nodes.length <= 0)) {
-                /**
-                 * Load beacon nodes
-                 */
-                await this.loadNodes();
-            } else if (this.beacon.loadOnInitialize) {
-                /**
-                 * Beacon nodes loading is in progress
-                 */
-                for (let i = 0; i < 100; i++) {
-                    // Waiting 5 seconds in 50ms steps
+    public async call<T = any>(method: string, params: any = []): Promise<T> {
+        let hasNodes = this.nodes && this.nodes.some((node) => !node.disabled);
+        if (!hasNodes && this.fetchType === 'hive') {
+            if (this.isLoading) {
+                for (let i = 0; i < 200; i++) {
+                    // Waiting 10 seconds in 50ms steps
                     await timeout(50);
-                    if (this.isInitialized) break;
+                    hasNodes = this.nodes && this.nodes.some((node) => !node.disabled);
+                    if (hasNodes) break;
                 }
+            } else {
+                await this.loadNodes();
             }
         }
-
-        assert(
-            this.nodes.some((node) => !node.disabled),
-            'nodes is empty. Either set nodes manually or run client.loadNodes()',
-        );
+        hasNodes = this.nodes && this.nodes.some((node) => !node.disabled);
+        if (!hasNodes) throw Error('Nodes are missing. Either set nodes manually or run client.loadNodes()');
 
         const request: RPCCall =
             this.fetchType === 'hive'
@@ -248,9 +243,8 @@ export class ClientFetch {
                 : { jsonrpc: '2.0', id: 0, ...params };
 
         const body = JSON.stringify(request, (key, value) => {
-            // encode Buffers as hex strings instead of an array of bytes
-            if (value && typeof value === 'object' && value.type === 'Buffer') {
-                return Buffer.from(value.data).toString('hex');
+            if (value && isTypedArray(value)) {
+                return bytesToHex(value);
             }
             return value;
         });
@@ -290,7 +284,7 @@ export class ClientFetch {
 
         const { response }: { response: RPCResponse } = await this.retryingFetch(opts, method, params);
 
-        if (this.fetchType === 'hive') assert.equal(response.id, request.id, 'got invalid response id');
+        if (this.fetchType === 'hive' && response?.id !== request?.id) throw Error('got invalid response id');
         return response.result;
     }
 
@@ -372,6 +366,7 @@ export class ClientFetch {
             }
         } while (true);
     }
+
     private updateNodeErrors() {
         // Check if the client has had errors within the last 10 minutes
         if (this.currentNode.lastError && this.currentNode.lastError > Date.now() - 10 * 60 * 1000) this.currentNode.errors++;
@@ -380,13 +375,13 @@ export class ClientFetch {
         this.currentNode.lastError = Date.now();
 
         if (this.currentNode.errors >= this.nodeErrorLimit) {
-            log('Disabling node: ' + this.currentNode.endpoint + ' due to too many errors!', 1, 'Red');
+            log('Disabling node: ' + this.currentNode.endpoint + ' due to too many errors!', LogLevel.Error, 'Red');
             this.currentNode.disabled = true;
         }
 
         // If all clients have been disabled, we're in trouble, but just try re-enabling them all
         if (!this.nodes.find((c) => !c.disabled)) {
-            log('Warning: All clients disabled! Re-enabling them.', 1, 'Red');
+            log('Warning: All clients disabled! Re-enabling them.', LogLevel.Error, 'Red');
             this.nodes.forEach((c) => (c.disabled = false));
         }
     }

@@ -1,19 +1,14 @@
-/**
- * @file Account by key API helpers.
- * @author Bartłomiej (@engrave) Górnicki
- */
-
-import { PublicKey } from '../chain/keys/keys';
-import { Client } from '../client';
+import { ClientFetch } from '../clientFetch';
+import { PublicKey } from '../chain/keys';
 
 export class AccountByKeyAPI {
-    constructor(readonly client: Client) {}
+    constructor(private readonly fetch: ClientFetch) {}
 
     /**
-     * Convenience for calling `account_by_key_api`.
+     * Convenience for calling `account_by_key_api` api.
      */
     public call(method: string, params?: any) {
-        return this.client.call('account_by_key_api', method, params);
+        return this.fetch.call(`account_by_key_api.${method}`, params);
     }
 
     /**

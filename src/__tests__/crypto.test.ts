@@ -1,89 +1,121 @@
-import assert from 'assert';
-import ByteBuffer from 'bytebuffer';
-import { randomBytes, createHash } from 'crypto';
-import { PrivateKey, PublicKey, Signature, Transaction, Types } from '..';
-import { DEFAULT_CHAIN_ID } from '../constants';
+import { CustomJsonOperation, PrivateKey, PublicKey, Signature, Transaction } from '..';
+import { TEST_CLIENT } from './common';
+import { generateUniqueNounce } from '../utils/utils';
+import { hash } from '../crypto/hash';
+import { hexToBytes } from '@noble/hashes/utils';
 
 describe('crypto', function () {
-    const testnetPrefix = 'STX';
+    const testnetPrefix = 'STM';
     const testnetPair = {
         private: '5JQy7moK9SvNNDxn8rKNfQYFME5VDYC2j9Mv2tb7uXV5jz3fQR8',
-        public: 'STX8FiV6v7yqYWTZz8WuFDckWr62L9X34hCy6koe8vd2cDJHimtgM',
+        public: 'STM8FiV6v7yqYWTZz8WuFDckWr62L9X34hCy6koe8vd2cDJHimtgM',
     };
     const mainPair = {
         private: '5K2yDAd9KAZ3ZitBsAPyRka9PLFemUrbcL6UziZiPaw2c6jCeLH',
         public: 'STM8QykigLRi9ZUcNy1iXGY3KjRuCiLM8Ga49LHti1F8hgawKFc3K',
     };
-    const mainPairPub = Buffer.from('03d0519ddad62bd2a833bee5dc04011c08f77f66338c38d99c685dee1f454cd1b8', 'hex');
-
+    const mainPairPub = hexToBytes('03d0519ddad62bd2a833bee5dc04011c08f77f66338c38d99c685dee1f454cd1b8');
+    const nullKey = 'STM1111111111111111111111111111111114T1Anm';
     const testSig = '202c52188b0ecbc26c766fe6d3ec68dac58644f43f43fc7d97da122f76fa028f98691dd48b44394bdd8cecbbe66e94795dcf53291a1ef7c16b49658621273ea68e';
-    const testKey = PrivateKey.from(randomBytes(32));
+    const testKey = PrivateKey.from('5K2yDAd9KAZ3ZitBsAPyRka9PLFemUrbcL6UziZiPaw2c6jCeLH');
+    const testPubKey = testKey.createPublic();
 
     it('should decode public keys', function () {
         const k1 = PublicKey.fromString(testnetPair.public);
-        assert.equal(k1.prefix, testnetPrefix);
-        assert(k1.toString(), testnetPair.public);
+        expect(k1.prefix).toEqual(testnetPrefix);
+        expect(k1.toString()).toEqual(testnetPair.public);
         const k2 = PublicKey.from(mainPair.public);
-        assert(k2.toString(), mainPair.public);
+        expect(k2.toString()).toEqual(mainPair.public);
         const k3 = new PublicKey(mainPairPub, 'STM');
-        assert(k2.toString(), k3.toString());
+        expect(k2.toString()).toEqual(k3.toString());
         const k4 = PublicKey.from(testnetPair.public);
-        assert(k4.toString(), testnetPair.public);
+        expect(k4.toString()).toEqual(testnetPair.public);
+        const k5 = PublicKey.from(nullKey);
+        expect(k5.toString()).toEqual(nullKey);
+        expect(k5.key).toEqual(new Uint8Array(33));
+
+        const eoskey = '5KGW4K9LaETePPa44p9TDJxYPkHgWuZjKA83bFpeT1pkvWUtN8d';
+        expect(PrivateKey.from(eoskey).createPublic('EOS').toString()).toEqual('EOS5HkDFSssD71AaYEC3mS7WH9ug9kGCBn12sf2xbSkR1ABtWL4wD');
     });
 
     it('should decode private keys', function () {
         const k1 = PrivateKey.fromString(testnetPair.private);
-        assert(k1.toString(), testnetPair.private);
+        expect(k1.toString()).toEqual(testnetPair.private);
         const k2 = PrivateKey.from(mainPair.private);
-        assert(k2.toString(), mainPair.private);
+        expect(k2.toString()).toEqual(mainPair.private);
     });
 
     it('should create public from private', function () {
-        const key = PrivateKey.fromString(testnetPair.private);
-        assert(key.createPublic().toString(), testnetPair.public);
+        const key = PrivateKey.fromString(mainPair.private);
+        const pubKey = key.createPublic().toString();
+        expect(pubKey).toEqual(mainPair.public);
     });
 
     it('should handle prefixed keys', function () {
         const key = PublicKey.from(testnetPair.public);
-        assert(key.toString(), testnetPair.public);
-        assert(PrivateKey.fromString(testnetPair.private).createPublic(testnetPrefix).toString(), testnetPair.public);
+        expect(key.toString()).toEqual(testnetPair.public);
+        expect(PrivateKey.fromString(testnetPair.private).createPublic(testnetPrefix).toString()).toEqual(testnetPair.public);
     });
 
-    // it("should conceal private key when inspecting", function() {
-    //   const key = PrivateKey.fromString(testnetPair.private);
-    //   // assert.equal(inspect(key), "PrivateKey: 5JQy7m...z3fQR8");
-    //   assert.equal(
-    //     inspect(key.createPublic(testnetPrefix).toString()),
-    //     "STX8FiV6v7yqYWTZz8WuFDckWr62L9X34hCy6koe8vd2cDJHimtgM"
-    //   );
+    // it('should conceal private key when inspecting', function () {
+    //     const key = PrivateKey.fromString(testnetPair.private);
+    //     // expect(inspect(key), "PrivateKey: 5JQy7m...z3fQR8");
+    //     expect(inspect(key.createPublic(testnetPrefix).toString()), 'STX8FiV6v7yqYWTZz8WuFDckWr62L9X34hCy6koe8vd2cDJHimtgM');
     // });
 
-    it('should sign and verify', function () {
-        const message = randomBytes(32);
-        const signature = testKey.sign(message);
-        assert(testKey.createPublic().verify(message, signature));
-        // signature.data.writeUInt8(0x42, 3);
-        // assert(!testKey.createPublic().verify(message, signature));
+    it('should sign message and verify', async function () {
+        let correct = 0;
+        let i = 0;
+        while (i < 100) {
+            i++;
+            const message = generateUniqueNounce(32);
+            const signature = testKey.signMessage(message);
+            const pubKey = testKey.createPublic();
+            if (pubKey.verifyMessage(message, signature)) correct++;
+        }
+        expect(correct).toEqual(i);
     });
 
     it('should de/encode signatures', function () {
         const signature = Signature.fromString(testSig);
-        assert.equal(signature.toString(), testSig);
+        expect(signature.toString()).toEqual(testSig);
     });
 
     it('should recover pubkey from signatures', function () {
-        const key = PrivateKey.fromString(testnetPair.private);
-        const msg = randomBytes(32);
-        const signature = key.sign(msg);
-        assert.equal(signature.recover(msg).toString(), key.createPublic().toString());
+        let correct = 0;
+        let i = 0;
+        while (i < 100) {
+            i++;
+            const key = PrivateKey.fromString(testnetPair.private);
+            const pubKey = key.createPublic().toString();
+            const msg = hash.sha256(generateUniqueNounce(32));
+            const signature = key.sign(msg);
+            const recoveredKey = signature.recover(msg).toString();
+            if (recoveredKey === pubKey) correct++;
+        }
+
+        expect(correct).toEqual(i);
     });
 
     it('should create key from login', function () {
         const key = PrivateKey.fromLogin('foo', 'barman');
-        assert.equal(key.createPublic().toString(), 'STM87F7tN56tAUL2C6J9Gzi9HzgNpZdi6M2cLQo7TjDU5v178QsYA');
+        expect(key.createPublic().toString()).toEqual('STM87F7tN56tAUL2C6J9Gzi9HzgNpZdi6M2cLQo7TjDU5v178QsYA');
     });
 
     it('should sign and verify transaction', async function () {
+        const op: CustomJsonOperation = ['custom_json', { id: 'test', json: JSON.stringify({}), required_auths: [], required_posting_auths: ['test'] }];
+        const tx = await TEST_CLIENT.broadcast.createTransaction(op);
+        const signedTx = tx.sign(testKey);
+        const txDigest = signedTx.digest();
+
+        const signed = tx.sign(testKey);
+        const sig = Signature.fromString(signed.signatures[0]);
+
+        expect(testPubKey.verify(txDigest, sig)).toBeTruthy();
+        expect(sig.recover(txDigest).toString()).toEqual(testPubKey.toString());
+    });
+
+    it('should recover key from signature', function () {
         const tx = new Transaction({
             ref_block_num: 1234,
             ref_block_prefix: 1122334455,
@@ -91,19 +123,8 @@ describe('crypto', function () {
             extensions: ['long-pants'],
             operations: [['vote', { voter: 'foo', author: 'bar', permlink: 'baz', weight: 10000 }]],
         });
-        const key = PrivateKey.fromSeed('hello');
-        const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
-        Types.Transaction(buffer, tx);
-        buffer.flip();
-        const data = Buffer.from(buffer.toBuffer());
-        const digest = createHash('sha256')
-            .update(Buffer.concat([DEFAULT_CHAIN_ID, data]))
-            .digest();
-        const signed = tx.sign(key);
-        const pkey = key.createPublic();
-        const sig = Signature.fromString(signed.signatures[0]);
-        assert(pkey.verify(digest, sig));
-        assert.equal(sig.recover(digest).toString(), 'STM7s4VJuYFfHq8HCPpgC649Lu7CjA1V9oXgPfv8f3fszKMk3Kny9');
+        const signedTx = tx.sign(testKey);
+        expect(signedTx.recoverKeyFromSignature(signedTx.signatures[0])?.toString()).toEqual(testPubKey.toString());
     });
 
     it('should handle serialization errors', function () {
@@ -117,9 +138,10 @@ describe('crypto', function () {
 
         try {
             tx.sign(testKey);
-            assert(false, 'should not be reached');
+            // should not be reached
+            expect(false).toBeTruthy();
         } catch (error: any) {
-            assert.equal(error.name, 'SerializationError');
+            expect(error.name).toEqual('SerializationError');
         }
     });
 

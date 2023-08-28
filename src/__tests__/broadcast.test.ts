@@ -1,6 +1,5 @@
-import { loremIpsum as lorem } from 'lorem-ipsum';
 import { Client, PrivateKey } from '..';
-import { getTestnetAccounts, randomString, agent } from './common';
+import { agent, getTestnetAccounts, randomString } from './common';
 
 describe('broadcast', function () {
     // this.slow(10 * 1000);

@@ -4,7 +4,7 @@ const packageName = require('./package.json').name.split('@splinterlands/').pop(
 module.exports = {
     preset: 'ts-jest',
     moduleFileExtensions: ['ts', 'js', 'json'],
-    collectCoverage: true,
+    collectCoverage: false,
     collectCoverageFrom: ['src/**/*.{ts,tsx}'],
     testRegex: `(/__tests__/.*|\\.(test|spec))\\.tsx?$`,
     moduleDirectories: ['node_modules'],

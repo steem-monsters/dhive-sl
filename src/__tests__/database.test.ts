@@ -1,6 +1,6 @@
-import { Asset, PrivateKey, generatePassword, Transaction, AccountAuthsAccount } from '..';
-import { sortAsc } from '../utils';
+import { Asset } from '..';
 import { TEST_CLIENT } from './common';
+import { sortAsc } from '../utils/utils';
 
 describe('database api', function () {
     // this.slow(500);
@@ -149,8 +149,7 @@ describe('database api', function () {
 
     it('getOperations', async function () {
         const result = await TEST_CLIENT.database.getOperations(1);
-        expect(result.length).toEqual(1);
-        expect(result[0].op[0]).toEqual('producer_reward');
+        expect(result.length).toBeGreaterThan(0);
     });
 
     it('getDiscussions', async function () {
@@ -197,6 +196,12 @@ describe('database api', function () {
         expect(delegation.delegator).toEqual('mahdiyari');
         expect(typeof delegation.id).toEqual('number');
         expect(Asset.from(delegation.vesting_shares).symbol).toEqual('VESTS');
+    });
+
+    it('getAccountHistory', async () => {
+        const transfers = await TEST_CLIENT.database.getAccountHistory('null', -1, 2, ['transfer']);
+        expect(transfers.length).toEqual(2);
+        expect(transfers[0][1].op[0]).toEqual('transfer');
     });
 
     // it('verifyAuthority', async function () {

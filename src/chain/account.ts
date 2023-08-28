@@ -1,11 +1,5 @@
-/**
- * @file Account types
- * @author Johan Nordberg <code@johan-nordberg.com>, Wolf
- * @license BSD-3-Clause-No-Military-License
- */
-
 import { Asset } from './asset';
-import { PublicKey } from './keys/keys';
+import { PublicKey } from './keys';
 
 export interface AuthorityType {
     weight_threshold: number; // uint32_t

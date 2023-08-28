@@ -1,19 +1,19 @@
 import * as fs from 'fs';
 import * as https from 'https';
-import { randomBytes } from 'crypto';
 import { Client, PrivateKey } from '..';
+import { bytesToHex, randomBytes } from '@noble/hashes/utils';
 
 export const IS_BROWSER = global['isBrowser'] === true;
 export const agent = IS_BROWSER ? undefined : new https.Agent({ keepAlive: true });
 export const NUM_TEST_ACCOUNTS = 2;
-export const TEST_NODE = process.env['TEST_NODE'] || 'https://api.hive.blog';
+export const TEST_NODE = process.env['TEST_NODE'] || 'https://api.deathwing.me';
 export const TEST_CLIENT = new Client({ nodes: [TEST_NODE], agent });
 export const MIRROR_CLIENT = Client.testnet();
 
 let testAccounts;
 
 export async function readFile(filename: string) {
-    return new Promise<Buffer>((resolve, reject) => {
+    return new Promise<Uint8Array>((resolve, reject) => {
         fs.readFile(filename, (error, result) => {
             if (error) {
                 reject(error);
@@ -24,7 +24,7 @@ export async function readFile(filename: string) {
     });
 }
 
-export async function writeFile(filename: string, data: Buffer) {
+export async function writeFile(filename: string, data: Uint8Array) {
     return new Promise<void>((resolve, reject) => {
         fs.writeFile(filename, data, (error) => {
             if (error) {
@@ -37,8 +37,7 @@ export async function writeFile(filename: string, data: Buffer) {
 }
 
 export function randomString(length: number) {
-    return randomBytes(length * 2)
-        .toString('base64')
+    return bytesToHex(randomBytes(length * 2))
         .replace(/[^0-9a-z]+/gi, '')
         .slice(0, length)
         .toLowerCase();

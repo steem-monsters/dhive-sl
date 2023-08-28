@@ -1,67 +1,65 @@
-import assert from 'assert';
-
-import { Asset, Price, getVestingSharePrice, RCS_PER_RC, RCAsset } from '..';
+import { Asset, Price, RCAsset, RCS_PER_RC, getVestingSharePrice } from '..';
 
 describe('asset', function () {
     it('should create from string', function () {
         const oneHive = Asset.fromString('1.000 HIVE');
-        assert.equal(oneHive.amount, 1);
-        assert.equal(oneHive.symbol, 'HIVE');
+        expect(oneHive.amount).toEqual(1);
+        expect(oneHive.symbol).toEqual('HIVE');
         const vests = Asset.fromString('0.123456 VESTS');
-        assert.equal(vests.amount, 0.123456);
-        assert.equal(vests.symbol, 'VESTS');
+        expect(vests.amount).toEqual(0.123456);
+        expect(vests.symbol).toEqual('VESTS');
         const hbd = Asset.from('0.444 HBD');
-        assert.equal(hbd.amount, 0.444);
-        assert.equal(hbd.symbol, 'HBD');
+        expect(hbd.amount).toEqual(0.444);
+        expect(hbd.symbol).toEqual('HBD');
     });
 
     it('should convert to string', function () {
         const hive = new Asset(44.999999, 'HIVE');
-        assert.equal(hive.toString(), '45.000 HIVE');
+        expect(hive.toString()).toEqual('45.000 HIVE');
         const vests = new Asset(44.999999, 'VESTS');
-        assert.equal(vests.toString(), '44.999999 VESTS');
+        expect(vests.toString()).toEqual('44.999999 VESTS');
     });
 
     it('should add and subtract', function () {
         const a = new Asset(44.999, 'HIVE');
-        assert.equal(a.subtract(1.999).toString(), '43.000 HIVE');
-        assert.equal(a.add(0.001).toString(), '45.000 HIVE');
-        assert.equal(Asset.from('1.999 HIVE').subtract(a).toString(), '-43.000 HIVE');
-        assert.equal(Asset.from(a).subtract(a).toString(), '0.000 HIVE');
-        assert.equal(Asset.from('99.999999 VESTS').add('0.000001 VESTS').toString(), '100.000000 VESTS');
-        assert.throws(() => Asset.fromString('100.000 HIVE').subtract('100.000000 VESTS'));
-        assert.throws(() => Asset.from(100, 'VESTS').add(a));
-        assert.throws(() => Asset.from(100).add('1.000000 VESTS'));
+        expect(a.subtract(1.999).toString()).toEqual('43.000 HIVE');
+        expect(a.add(0.001).toString()).toEqual('45.000 HIVE');
+        expect(Asset.from('1.999 HIVE').subtract(a).toString()).toEqual('-43.000 HIVE');
+        expect(Asset.from(a).subtract(a).toString()).toEqual('0.000 HIVE');
+        expect(Asset.from('99.999999 VESTS').add('0.000001 VESTS').toString()).toEqual('100.000000 VESTS');
+        expect(() => Asset.fromString('100.000 HIVE').subtract('100.000000 VESTS')).toThrow();
+        expect(() => Asset.from(100, 'VESTS').add(a)).toThrow();
+        expect(() => Asset.from(100).add('1.000000 VESTS')).toThrow();
     });
 
     it('should max and min', function () {
         const a = Asset.from(1),
             b = Asset.from(2);
-        assert.equal(Asset.min(a, b), a);
-        assert.equal(Asset.min(b, a), a);
-        assert.equal(Asset.max(a, b), b);
-        assert.equal(Asset.max(b, a), b);
+        expect(Asset.min(a, b)).toEqual(a);
+        expect(Asset.min(b, a)).toEqual(a);
+        expect(Asset.max(a, b)).toEqual(b);
+        expect(Asset.max(b, a)).toEqual(b);
     });
 
     it('should throw on invalid values', function () {
-        assert.throws(() => Asset.fromString('1.000 SNACKS'));
-        assert.throws(() => Asset.fromString('I LIKE TURT 0.42'));
-        assert.throws(() => Asset.fromString('Infinity HIVE'));
-        assert.throws(() => Asset.fromString('..0 HIVE'));
-        assert.throws(() => Asset.from('..0 HIVE'));
-        assert.throws(() => Asset.from(NaN));
-        assert.throws(() => Asset.from(false as any));
-        assert.throws(() => Asset.from(Infinity));
-        assert.throws(() => Asset.from({ bar: 22 } as any));
+        expect(() => Asset.fromString('1.000 SNACKS')).toThrow();
+        expect(() => Asset.fromString('I LIKE TURT 0.42')).toThrow();
+        expect(() => Asset.fromString('Infinity HIVE')).toThrow();
+        expect(() => Asset.fromString('..0 HIVE')).toThrow();
+        expect(() => Asset.from('..0 HIVE')).toThrow();
+        expect(() => Asset.from(NaN)).toThrow();
+        expect(() => Asset.from(false as any)).toThrow();
+        expect(() => Asset.from(Infinity)).toThrow();
+        expect(() => Asset.from({ bar: 22 } as any)).toThrow();
     });
 
     it('should parse price', function () {
         const price1 = new Price(Asset.from('1.000 HIVE'), Asset.from(1, 'HBD'));
         const price2 = Price.from(price1);
         const price3 = Price.from({ base: '1.000 HIVE', quote: price1.quote });
-        assert.equal(price1.toString(), '1.000 HIVE:1.000 HBD');
-        assert.equal(price2.base.toString(), price3.base.toString());
-        assert.equal(price2.quote.toString(), price3.quote.toString());
+        expect(price1.toString()).toEqual('1.000 HIVE:1.000 HBD');
+        expect(price2.base.toString()).toEqual(price3.base.toString());
+        expect(price2.quote.toString()).toEqual(price3.quote.toString());
     });
 
     it('should get vesting share price', function () {
@@ -70,32 +68,32 @@ describe('asset', function () {
             total_vesting_shares: '12345.000000 VESTS',
         };
         const price1 = getVestingSharePrice(props);
-        assert.equal(price1.base.amount, 12345);
-        assert.equal(price1.base.symbol, 'VESTS');
-        assert.equal(price1.quote.amount, 5);
-        assert.equal(price1.quote.symbol, 'HIVE');
+        expect(price1.base.amount).toEqual(12345);
+        expect(price1.base.symbol).toEqual('VESTS');
+        expect(price1.quote.amount).toEqual(5);
+        expect(price1.quote.symbol).toEqual('HIVE');
         const badProps: any = {
             total_vesting_fund_hive: '0.000 HIVE',
             total_vesting_shares: '0.000000 VESTS',
         };
         const price2 = getVestingSharePrice(badProps);
-        assert.equal(price2.base.amount, 1);
-        assert.equal(price2.base.symbol, 'VESTS');
-        assert.equal(price2.quote.amount, 1);
-        assert.equal(price2.quote.symbol, 'HIVE');
+        expect(price2.base.amount).toEqual(1);
+        expect(price2.base.symbol).toEqual('VESTS');
+        expect(price2.quote.amount).toEqual(1);
+        expect(price2.quote.symbol).toEqual('HIVE');
     });
 
     it('should convert price', function () {
         const price1 = new Price(Asset.from('0.500 HIVE'), Asset.from('1.000 HBD'));
         const v1 = price1.convert(Asset.from('1.000 HIVE'));
-        assert.equal(v1.amount, 2);
-        assert.equal(v1.symbol, 'HBD');
+        expect(v1.amount).toEqual(2);
+        expect(v1.symbol).toEqual('HBD');
         const v2 = price1.convert(Asset.from('1.000 HBD'));
-        assert.equal(v2.amount, 0.5);
-        assert.equal(v2.symbol, 'HIVE');
-        assert.throws(() => {
+        expect(v2.amount).toEqual(0.5);
+        expect(v2.symbol).toEqual('HIVE');
+        expect(() => {
             price1.convert(Asset.from(1, 'VESTS'));
-        });
+        }).toThrow();
     });
 
     it('should get RC', () => {

@@ -1,11 +1,5 @@
-/**
- * @file ResourceCredits typings
- * @author Wolf
- * @license BSD-3-Clause-No-Military-License
- */
-
-import { RCAsset, SMTAsset } from './asset';
 import { Bignum } from './misc';
+import { RCAsset, SMTAsset } from './asset';
 
 export interface RCParams {
     resource_history_bytes: Resource;

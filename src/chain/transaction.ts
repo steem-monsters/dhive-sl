@@ -1,17 +1,12 @@
-/**
- * @file Transaction types
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
+import { ByteBuffer } from '../crypto/bytebuffer';
+import { DEFAULT_CHAIN_ID } from '../utils/constants';
 import { Operation } from './operation';
-import ByteBuffer from 'bytebuffer';
-import { VError } from 'verror';
-import { Types } from './serializer';
-import { PrivateKey, Signature } from './keys/keys';
-import { hash } from '../crypto';
-import { DEFAULT_CHAIN_ID } from '../constants';
+import { PrivateKey, Signature } from './keys';
 import { TxSignProperties } from '../modules/database';
+import { Types } from './serializer';
+import { VError } from 'verror';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { hash } from '../crypto/hash';
 
 interface TransactionParameters {
     ref_block_num: number;
@@ -33,9 +28,9 @@ interface SignedBlockTransactionParameters extends SignedTransactionParameters {
 
 export interface TransactionConfirmation {
     id: string; // transaction_id_type
-    block_num: number; // int32_t
-    trx_num: number; // int32_t
-    expired: boolean;
+    block_num?: number; // int32_t
+    trx_num?: number; // int32_t
+    expired?: boolean;
 }
 
 export class Transaction {
@@ -66,7 +61,7 @@ export class Transaction {
      */
     public static from(txSignProperties: TxSignProperties, ops: Operation[], expireTime = Transaction.expireTime) {
         const ref_block_num = txSignProperties.head_block_number & 0xffff;
-        const ref_block_prefix = Buffer.from(txSignProperties.head_block_id, 'hex').readUInt32LE(4);
+        const ref_block_prefix = new Uint32Array(hexToBytes(txSignProperties.head_block_id).buffer, 4, 1)[0];
         const expiration = new Date(txSignProperties.time + expireTime).toISOString().slice(0, -5);
 
         return new Transaction({
@@ -81,7 +76,7 @@ export class Transaction {
     /**
      * Returns the public key a signature was signed with
      */
-    public recoverKeyFromSignature(signature: string, chainId?: Buffer) {
+    public recoverKeyFromSignature(signature: string, chainId?: Uint8Array) {
         try {
             const sig = Signature.fromString(signature);
             return new Signature(sig.data, sig.recid).recover(this.digest(chainId));
@@ -90,22 +85,23 @@ export class Transaction {
         }
     }
 
+    private toBuffer() {
+        const buffer = new ByteBuffer();
+        try {
+            Types.Transaction(buffer, this);
+        } catch (cause: any) {
+            throw new VError({ cause, name: 'SerializationError' }, 'Unable to serialize transaction');
+        }
+        buffer.flip();
+        return Uint8Array.from(buffer.toBuffer());
+    }
+
     /**
      * Return the sha256 transaction digest.
      * @param chainId The chain id to use when creating the hash.
      */
-    public digest(chainId: Buffer = DEFAULT_CHAIN_ID) {
-        const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
-        try {
-            Types.Transaction(buffer, this);
-        } catch (cause) {
-            throw new VError({ cause, name: 'SerializationError' }, 'Unable to serialize transaction');
-        }
-        buffer.flip();
-
-        const transactionData = Buffer.from(buffer.toBuffer());
-        const digest = hash.sha256(Buffer.concat([chainId, transactionData]));
-        return digest;
+    public digest(chainId: Uint8Array = DEFAULT_CHAIN_ID) {
+        return hash.sha256(new Uint8Array([...chainId, ...this.toBuffer()]));
     }
 
     /**
@@ -114,7 +110,7 @@ export class Transaction {
      * @param keys Key(s) to sign transaction with.
      * @param options Chain id and address prefix, compatible with Client
      */
-    public sign(keys: string | string[] | PrivateKey | PrivateKey[], chainId: Buffer = DEFAULT_CHAIN_ID) {
+    public sign(keys: string | string[] | PrivateKey | PrivateKey[], chainId: Uint8Array = DEFAULT_CHAIN_ID) {
         const digest = this.digest(chainId);
         const signedTransaction = new SignedTransaction({ signatures: [], ...this });
         const finalKeys: PrivateKey[] = (!Array.isArray(keys) ? [keys] : keys).map((key) => (typeof key === 'string' ? PrivateKey.from(key) : key));
@@ -127,16 +123,8 @@ export class Transaction {
         return signedTransaction;
     }
 
-    generateTrxId() {
-        const buffer: any = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY, ByteBuffer.LITTLE_ENDIAN);
-        try {
-            Types.Transaction(buffer, this);
-        } catch (cause) {
-            throw new VError({ cause, name: 'SerializationError' }, 'Unable to serialize transaction');
-        }
-        buffer.flip();
-        const transactionData = Buffer.from(buffer.toBuffer());
-        return hash.sha256(transactionData).toString('hex').slice(0, 40);
+    public generateTrxId() {
+        return bytesToHex(hash.sha256(this.toBuffer())).slice(0, 40);
     }
 }
 

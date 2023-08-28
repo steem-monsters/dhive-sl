@@ -1,10 +1,8 @@
-import assert from 'assert';
-import { randomBytes } from 'crypto';
 import * as ds from '..';
 
-const { Asset, PrivateKey, Client, HexBuffer } = ds;
+const { Asset, PrivateKey, Client } = ds;
 
-import { getTestnetAccounts, randomString, agent } from './common';
+import { agent, getTestnetAccounts, randomString } from './common';
 
 describe('operations', function () {
     it('requires testnet', () => {

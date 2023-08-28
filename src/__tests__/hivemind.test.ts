@@ -1,38 +1,28 @@
-import assert from 'assert';
 import { TEST_CLIENT } from './common';
 
 describe('HivemindAPI', function () {
-    // this.slow(500);
-    // this.timeout(20 * 1000);
-
-    let acc: { username: string; password: string };
-
     it('getRankedPosts', async () => {
         const r = await TEST_CLIENT.hivemind.getRankedPosts({ limit: 1, sort: 'trending', tag: '', observer: '' });
-        //console.log('rankedposts', r)
-        assert.equal(r.length, 1);
+        expect(r.length).toEqual(1);
     });
 
     it('getCommunity', async () => {
-        const r = await TEST_CLIENT.hivemind.getCommunity({ name: 'hive-148441', observer: '' });
-        // console.log('community', r)
-        //assert.equal(r.length, 1)
+        const r = await TEST_CLIENT.hivemind.getCommunity({ name: 'hive-111111', observer: '' });
+        expect(r.name).toEqual('hive-111111');
     });
 
     it('getAccountNotifications', async () => {
-        const r = await TEST_CLIENT.hivemind.getAccountNotifications({ account: 'acidyo', limit: 2 });
-        // console.log('notifies', r)
-        //assert.equal(r.length, 1)
+        const r = await TEST_CLIENT.hivemind.getAccountNotifications({ account: 'null', limit: 2 });
+        expect(r.length).toEqual(2);
     });
 
     it('listCommunities', async () => {
         const r = await TEST_CLIENT.hivemind.listCommunities({ limit: 2 });
-        // console.log('communities', r)
+        expect(r.length).toEqual(2);
     });
 
     it('listAllSubscriptions', async () => {
         const r = await TEST_CLIENT.hivemind.listAllSubscriptions({ account: 'acidyo' });
-        // console.log('subscriptions', r)
-        //assert.equal(r.length, 1)
+        expect(r.length).toBeGreaterThan(0);
     });
 });

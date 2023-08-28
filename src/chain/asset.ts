@@ -1,11 +1,3 @@
-/**
- * @file Asset types
- * @author Johan Nordberg <code@johan-nordberg.com>
- * @license BSD-3-Clause-No-Military-License
- */
-
-import assert from 'assert';
-
 export interface SMTAsset {
     amount: string | number;
     precision: number;
@@ -70,7 +62,7 @@ export class Asset {
      * Return the smaller of the two assets.
      */
     public static min(a: Asset, b: Asset) {
-        assert(a.symbol === b.symbol, 'can not compare assets with different symbols');
+        if (a.symbol !== b.symbol) throw Error('can not compare assets with different symbols');
         return a.amount < b.amount ? a : b;
     }
 
@@ -78,7 +70,7 @@ export class Asset {
      * Return the larger of the two assets.
      */
     public static max(a: Asset, b: Asset) {
-        assert(a.symbol === b.symbol, 'can not compare assets with different symbols');
+        if (a.symbol !== b.symbol) throw Error('can not compare assets with different symbols');
         return a.amount > b.amount ? a : b;
     }
 
@@ -97,7 +89,6 @@ export class Asset {
             case 'VESTS':
                 return 6;
         }
-        return 0;
     }
 
     /**
@@ -127,7 +118,7 @@ export class Asset {
      */
     public add(amount: Asset | string | number): Asset {
         const other = Asset.from(amount, this.symbol);
-        assert(this.symbol === other.symbol, 'can not add with different symbols');
+        if (this.symbol !== other.symbol) throw Error('can not add with different symbols');
         return new Asset(this.amount + other.amount, this.symbol);
     }
 
@@ -136,7 +127,7 @@ export class Asset {
      */
     public subtract(amount: Asset | string | number): Asset {
         const other = Asset.from(amount, this.symbol);
-        assert(this.symbol === other.symbol, 'can not subtract with different symbols');
+        if (this.symbol !== other.symbol) throw Error('can not subtract with different symbols');
         return new Asset(this.amount - other.amount, this.symbol);
     }
 
@@ -145,7 +136,7 @@ export class Asset {
      */
     public multiply(factor: Asset | string | number): Asset {
         const other = Asset.from(factor, this.symbol);
-        assert(this.symbol === other.symbol, 'can not multiply with different symbols');
+        if (this.symbol !== other.symbol) throw Error('can not multiply with different symbols');
         return new Asset(this.amount * other.amount, this.symbol);
     }
 
@@ -154,15 +145,8 @@ export class Asset {
      */
     public divide(divisor: Asset | string | number): Asset {
         const other = Asset.from(divisor, this.symbol);
-        assert(this.symbol === other.symbol, 'can not divide with different symbols');
+        if (this.symbol !== other.symbol) throw Error('can not divide with different symbols');
         return new Asset(this.amount / other.amount, this.symbol);
-    }
-
-    /**
-     * For JSON serialization, same as toString().
-     */
-    public toJSON(): string {
-        return this.toString();
     }
 }
 
@@ -269,8 +253,8 @@ export class Price {
      * Both base and quote shall have different symbol defined.
      */
     constructor(public readonly base: Asset, public readonly quote: Asset) {
-        assert(base.amount !== 0 && quote.amount !== 0, 'base and quote assets must be non-zero');
-        assert(base.symbol !== quote.symbol, 'base and quote can not have the same symbol');
+        if (base.amount === 0 || quote.amount === 0) throw Error('base and quote assets must be non-zero');
+        if (base.symbol === quote.symbol) throw Error('base and quote can not have the same symbol');
     }
 
     /**
@@ -297,10 +281,10 @@ export class Price {
      */
     public convert(asset: Asset) {
         if (asset.symbol === this.base.symbol) {
-            assert(this.base.amount > 0);
+            if (this.base.amount <= 0) throw Error();
             return new Asset((asset.amount * this.quote.amount) / this.base.amount, this.quote.symbol);
         } else if (asset.symbol === this.quote.symbol) {
-            assert(this.quote.amount > 0);
+            if (this.quote.amount <= 0) throw Error();
             return new Asset((asset.amount * this.base.amount) / this.quote.amount, this.base.symbol);
         } else {
             throw new Error(`Can not convert ${asset} with ${this}`);

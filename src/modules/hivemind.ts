@@ -1,12 +1,8 @@
-/**
- * @file Hivemind API helpers.
- * @license BSD-3-Clause-No-Military-License
- */
-
 import { Account } from '../chain/account';
-import { Discussion } from '../chain/comment';
-import { CommunityDetail, Notifications } from '../chain/hivemind';
-import { Client } from '../client';
+import { AccountRelationship, CommunityDetail, Notifications, Post } from '../chain/hivemind';
+import { ClientFetch } from '../clientFetch';
+
+export type PostsSortOrder = 'trending' | 'hot' | 'created' | 'promoted' | 'payout' | 'payout_comments' | 'muted';
 
 interface PostsQuery {
     /**
@@ -16,7 +12,7 @@ interface PostsQuery {
     /**
      * Sorting posts
      */
-    sort: 'trending' | 'hot' | 'created' | 'promoted' | 'payout' | 'payout_comments' | 'muted';
+    sort: PostsSortOrder;
     /**
      * Filtering with tags
      */
@@ -78,22 +74,21 @@ interface ListCommunitiesQuery {
 }
 
 export class HivemindAPI {
-    constructor(readonly client: Client) {}
+    constructor(private readonly fetch: ClientFetch) {}
 
-    /**
-     * Convenience of calling hivemind api
-     * @param method
-     * @param params
-     */
-    public call(method: string, params?: any) {
-        return this.client.call('bridge', method, params);
+    public getPost(author: string, permlink: string, observer?: string): Promise<Post> {
+        return this.call('get_post', { author, permlink, observer });
+    }
+
+    public normalizePost(post: any): Promise<Post> {
+        return this.call('normalize_post', { post });
     }
 
     /**
      * Get trending, hot, recent community posts from Hivemind
      * @param options
      */
-    public getRankedPosts(options: PostsQuery): Promise<Discussion[]> {
+    public getRankedPosts(options: PostsQuery): Promise<Post[]> {
         return this.call('get_ranked_posts', options);
     }
 
@@ -101,7 +96,7 @@ export class HivemindAPI {
      * Get posts by particular account from Hivemind
      * @param options
      */
-    public getAccountPosts(options: AccountPostsQuery): Promise<Discussion[]> {
+    public getAccountPosts(options: AccountPostsQuery): Promise<Post[]> {
         return this.call('get_account_posts', options);
     }
 
@@ -110,7 +105,7 @@ export class HivemindAPI {
      * moderators, how many subscribers, etc..
      * @param options
      */
-    public getCommunity(options: CommunityQuery): Promise<CommunityDetail[]> {
+    public getCommunity(options: CommunityQuery): Promise<CommunityDetail> {
         return this.call('get_community', options);
     }
 
@@ -119,8 +114,12 @@ export class HivemindAPI {
      * @param account the account you want to query
      * @returns {Array} return role, what community the account joined
      */
-    public listAllSubscriptions(account: Account['name'] | object): Promise<Discussion[]> {
+    public listAllSubscriptions(account: Account['name'] | object): Promise<Post[]> {
         return this.call('list_all_subscriptions', account);
+    }
+
+    public listSubscribers(community: string): Promise<string[]> {
+        return this.call('list_subscribers', { community });
     }
 
     /**
@@ -137,5 +136,16 @@ export class HivemindAPI {
      */
     public listCommunities(options: ListCommunitiesQuery): Promise<CommunityDetail[]> {
         return this.call('list_communities', options);
+    }
+
+    public getRelationshipBetweenAccounts(follower: string, following: string): Promise<AccountRelationship> {
+        return this.call('get_relationship_between_accounts', [follower, following]);
+    }
+
+    /**
+     * Convenience for calling `bridge` api.
+     */
+    public call(method: string, params?: any) {
+        return this.fetch.call(`bridge.${method}`, params);
     }
 }

@@ -1,11 +1,6 @@
 import { TEST_CLIENT } from './common';
 
 describe('hive-engine api', function () {
-    // this.slow(500);
-    // this.timeout(20 * 1000);
-
-    // BLOCKCHAIN
-
     it('should get the latest block of the sidechain', async () => {
         const response = await TEST_CLIENT.engine.blockchain.getLatestBlock();
         expect(response).not.toBe(null);
@@ -21,27 +16,10 @@ describe('hive-engine api', function () {
         expect(response.chainId).toEqual('mainnet-hive');
     });
 
-    // CONTRACTS
-
-    it('should get the contract information via callback', (done) => {
-        TEST_CLIENT.engine.contracts.getContract('tokens', (err, res) => {
-            expect(err).toBe(null);
-            expect(res._id).toBe('tokens');
-            done();
-        });
-    });
-
-    it('should get the contract information via promise', async () => {
-        const response = await TEST_CLIENT.engine.contracts.getContract('tokens');
-        expect(response._id).toBe('tokens');
-    });
-
     it('should get the contract information', async () => {
         const response = await TEST_CLIENT.engine.tokens.getContract();
         expect(response._id).toBe('tokens');
     });
-
-    // TOKENS
 
     it('should get BEE balance for aggroed', async () => {
         const account = 'aggroed';
@@ -50,6 +28,14 @@ describe('hive-engine api', function () {
         const response = await TEST_CLIENT.engine.tokens.getAccountBalance(account, symbol);
         expect(response.account).toEqual(account);
         expect(response.symbol).toEqual(symbol);
+
+        const responseRaw = await TEST_CLIENT.engine.tokens.findOne('balances', { symbol: symbol, account });
+        expect(responseRaw.account).toEqual(account);
+        expect(responseRaw.symbol).toEqual(symbol);
+
+        const responseRaw2 = await TEST_CLIENT.engine.tokens.find('balances', { symbol: { $in: [symbol] }, account });
+        expect(responseRaw2[0].account).toEqual(account);
+        expect(responseRaw2[0].symbol).toEqual(symbol);
     });
 
     it('should get balances', async () => {
@@ -62,7 +48,7 @@ describe('hive-engine api', function () {
     });
 
     it('should get tokens', async () => {
-        const response = await TEST_CLIENT.engine.tokens.getTokens({ limit: 10 });
+        const response = await TEST_CLIENT.engine.tokens.getTokens([], { limit: 10 });
         expect(response[0].symbol).toBe('BEE');
         expect(response[1].symbol).toBe('SWAP.HIVE');
         expect(response[2].symbol).toBe('ORB');
@@ -76,15 +62,14 @@ describe('hive-engine api', function () {
     });
 
     it('should get tokens via pagination', async () => {
-        let response = await TEST_CLIENT.engine.tokens.getTokens({ limit: 2 });
+        let response = await TEST_CLIENT.engine.tokens.getTokens([], { limit: 2 });
         expect(response[0].symbol).toBe('BEE');
         expect(response[1].symbol).toBe('SWAP.HIVE');
-        response = await TEST_CLIENT.engine.tokens.getTokens({ limit: 2, offset: 2 });
+        response = await TEST_CLIENT.engine.tokens.getTokens([], { limit: 2, offset: 2 });
         expect(response[0].symbol).toBe('ORB');
         expect(response[1].symbol).toBe('ALPHA');
-        response = await TEST_CLIENT.engine.tokens.getTokens({ limit: 2, offset: 4 });
+        response = await TEST_CLIENT.engine.tokens.getTokens([], { limit: 2, offset: 4 });
         expect(response[0].symbol).toBe('BETA');
         expect(response[1].symbol).toBe('UNTAMED');
     });
 });
-// hive.fund
