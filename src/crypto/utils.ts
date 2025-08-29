@@ -1,12 +1,12 @@
 import Long from 'long';
-import assert from '@noble/hashes/_assert';
 import secureRandom from 'secure-random';
-import { hexToBytes as _hexToBytes } from '@noble/hashes/utils';
+import { hexToBytes as _hexToBytes, abytes as assertBytes } from '@noble/hashes/utils';
 import { randomBytes } from '@noble/hashes/utils';
 
-const assertBool = assert.bool;
-const assertBytes = assert.bytes;
-export { assertBool, assertBytes };
+const assertBool = (value: unknown): void => {
+    if (typeof value !== 'boolean') throw new TypeError(`Expected boolean, got ${typeof value}`);
+};
+export { assertBytes, assertBool };
 
 export const bytesToUtf8 = (data: Uint8Array) => {
     if (!(data instanceof Uint8Array)) throw new TypeError(`bytesToUtf8 expected Uint8Array, got ${typeof data}`);

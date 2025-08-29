@@ -18,7 +18,7 @@ export async function readFile(filename: string) {
             if (error) {
                 reject(error);
             } else {
-                resolve(result);
+                resolve(Uint8Array.from(result));
             }
         });
     });

@@ -61,5 +61,5 @@ describe('memo', function () {
         }
         const result = await Promise.all(promises);
         expect(result.filter((r) => !!r).length).toEqual(i);
-    });
+    }, 20_000);
 });

@@ -1,0 +1,31 @@
+name: Publish to GitHub Packages
+
+on:
+  push:
+    branches:
+      - v2
+    paths:
+      - '**/*'
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com/'
+          scope: '@steem-monsters'
+
+      - name: Prepublish (install deps, lint, build)
+        run: npm run prepublishOnly
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

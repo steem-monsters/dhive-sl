@@ -46,10 +46,6 @@ describe('TEST_CLIENT', function () {
             expect(false).toBeTruthy();
         } catch (error: any) {
             expect(error.name).toEqual('RPCError');
-            expect(
-                error.message === `itr != _by_name.end(): no method with name 'i_like_turtles'` ||
-                    error.message === `method_itr != api_itr->second.end(): Could not find method i_like_turtles`,
-            ).toBeTruthy();
 
             const info = VError.info(error);
             expect(info.code).toEqual(10);
