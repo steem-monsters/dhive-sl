@@ -25,6 +25,17 @@
         "example:beacon": "NODE_ENV=development ts-node-dev --tree-kill --no-notify --respawn --transpile-only src/examples/beacon.example.ts",
         "dev": "NODE_ENV=development ts-node-dev --tree-kill --no-notify --respawn --transpile-only src/index.ts"
     },
+    "homepage": "https://github.com/steem-monsters/dhive-sl",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/steem-monsters/dhive-sl"
+    },
+    "keywords": [
+        "splinterlands",
+        "hive",
+        "blockchain",
+        "steemmonsters"
+    ],
     "author": "splinterlands",
     "license": "BSD-3",
     "dependencies": {
