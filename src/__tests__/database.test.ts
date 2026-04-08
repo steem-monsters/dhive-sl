@@ -125,13 +125,13 @@ describe('database api', function () {
         const r = (key: string) => result['HIVE_' + key];
         serverConfig = result;
         // also test some assumptions made throughout the code
-        const conf = await TEST_CLIENT.database.getConfig();
+        // const conf = await TEST_CLIENT.database.getConfig();
         expect(r('CREATE_ACCOUNT_WITH_HIVE_MODIFIER')).toEqual(30);
         expect(r('CREATE_ACCOUNT_DELEGATION_RATIO')).toEqual(5);
         expect(r('100_PERCENT')).toEqual(10000);
         expect(r('1_PERCENT')).toEqual(100);
 
-        const version = await TEST_CLIENT.call('database_api', 'get_version', {});
+        // const version = await TEST_CLIENT.call('database_api', 'get_version', {});
         // TODO: uncomment after HF24
         // assert.equal(version["chain_id"], TEST_CLIENT.options.chainId);
     });
