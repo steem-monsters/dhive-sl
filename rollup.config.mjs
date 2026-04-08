@@ -1,13 +1,14 @@
 import dts from 'rollup-plugin-dts';
 import esbuild from 'rollup-plugin-esbuild';
 import nodeResolve from '@rollup/plugin-node-resolve';
+import path from 'path';
 
 const name = 'dhive-sl';
 
 const bundle = (config) => ({
     ...config,
-    input: 'src/index.ts',
-    external: (id) => !/^[./]/.test(id),
+    input: path.resolve('src/index.ts'),
+    external: (id) => !id.startsWith('.') && !path.isAbsolute(id),
 });
 
 export default [
