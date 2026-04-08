@@ -1,8 +1,6 @@
-import * as ds from '..';
-
-const { Asset, PrivateKey, Client } = ds;
-
-import { agent, getTestnetAccounts, randomString } from './common';
+//import * as ds from '..';
+//import { agent, getTestnetAccounts, randomString } from './common';
+//const { Asset, PrivateKey, Client } = ds;
 
 describe('operations', function () {
     it('requires testnet', () => {
