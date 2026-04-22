@@ -1,6 +1,6 @@
 {
     "name": "@steem-monsters/dhive-sl",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "description": "Client library for the Hive blockchain.",
     "main": "dist/dhive-sl.js",
     "module": "dist/dhive-sl.esm.js",

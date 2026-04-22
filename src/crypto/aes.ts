@@ -20,9 +20,17 @@ const getBrowserKey = async (mode: string, key: Uint8Array, iv: Uint8Array): Pro
     if (!keyMode) throw new Error('AES: unsupported mode');
 
     const wKey = await crypto.web.subtle.importKey('raw', key, { name: `AES-${keyMode.toUpperCase()}`, length: key.length * 8 }, true, ['encrypt', 'decrypt']);
+    let wOpt: AesCbcParams | AesCtrParams;
+    if (keyMode === 'cbc') {
+        wOpt = { name: 'AES-CBC', iv: iv };
+    } else {
+        // ctr
+        wOpt = { name: 'AES-CTR', counter: iv.buffer as ArrayBuffer, length: 128 };
+    }
+
     // node.js uses whole 128 bit as a counter, without nonce, instead of 64 bit
     // recommended by NIST SP800-38A
-    return [wKey, { name: `aes-${keyMode}`, iv, counter: iv, length: 128 }];
+    return [wKey, wOpt];
 };
 
 async function encrypt(mode: string, msg: Uint8Array, key: Uint8Array, iv: Uint8Array, pkcs7PaddingEnabled = true): Promise<Uint8Array> {
