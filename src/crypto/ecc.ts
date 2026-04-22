@@ -134,14 +134,24 @@ export class EccPoint {
         if (compressed == null) compressed = this.compressed;
         if (this.curve.isInfinity(this)) return new Uint8Array(1).fill(0); // Infinity point encoded is simply '00'
 
-        const x: BigInteger = this.affineX;
-        const y: BigInteger = this.affineY;
+        const x = this.affineX;
+        const y = this.affineY;
         const byteLength = this.curve.pLength;
+        let buffer;
 
-        const buffer = new Uint8Array(1 + byteLength + (compressed ? 0 : byteLength));
-        buffer[0] = compressed ? (y.isEven() ? 0x02 : 0x03) : 0x04;
+        // 0x02/0x03 | X
+        if (compressed) {
+            buffer = Buffer.allocUnsafe(1 + byteLength);
+            buffer.writeUInt8(y.isEven() ? 0x02 : 0x03, 0);
 
-        if (!compressed) y.toBuffer(byteLength).copy(buffer, 1 + byteLength);
+            // 0x04 | X | Y
+        } else {
+            buffer = Buffer.allocUnsafe(1 + byteLength + byteLength);
+            buffer.writeUInt8(0x04, 0);
+
+            y.toBuffer(byteLength).copy(buffer, 1 + byteLength);
+        }
+
         x.toBuffer(byteLength).copy(buffer, 1);
 
         return buffer;
