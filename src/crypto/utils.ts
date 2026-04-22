@@ -56,7 +56,7 @@ export const uniqueNonce = (): string => {
         unique_nonce_entropy = parseInt(String((b[0] << 8) | b[1]), 10);
     }
     const entropy = ++unique_nonce_entropy % 0xffff;
-    return Long.fromNumber(Date.now()).shiftLeft(16).or(Long.fromNumber(entropy));
+    return Long.fromNumber(Date.now()).shiftLeft(16).or(Long.fromNumber(entropy)).toString();
 };
 let unique_nonce_entropy: any = null;
 

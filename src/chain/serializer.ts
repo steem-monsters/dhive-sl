@@ -55,7 +55,7 @@ const BinarySerializer = (size?: number) => (buffer: ByteBuffer, data: Uint8Arra
     if (size) {
         if (len !== size) throw new Error(`Unable to serialize binary. Expected ${size} bytes, got ${len}`);
     } else buffer.writeVarint32(len);
-    buffer.append(data.buffer);
+    buffer.append(data);
 };
 
 const VariableBinarySerializer = BinarySerializer();

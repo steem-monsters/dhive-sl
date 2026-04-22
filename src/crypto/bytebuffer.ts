@@ -518,8 +518,8 @@ export class ByteBuffer {
         let capacity7 = this.buffer.byteLength;
         if (offset > capacity7) this.resize((capacity7 *= 2) > offset ? capacity7 : offset);
         offset -= 8;
-        const lo = longValue.low;
-        const hi = longValue.high;
+        const lo = longValue instanceof Long ? longValue.low : parseInt(longValue.toString());
+        const hi = longValue instanceof Long ? longValue.high : parseInt(longValue.toString());
         this.view[offset + 3] = (lo >>> 24) & 0xff;
         this.view[offset + 2] = (lo >>> 16) & 0xff;
         this.view[offset + 1] = (lo >>> 8) & 0xff;

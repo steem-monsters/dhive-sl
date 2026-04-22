@@ -10,6 +10,7 @@
         "lib": ["esnext", "esnext.asynciterable", "dom"],
         "module": "CommonJS",
         "moduleResolution": "node",
+        "types": ["node", "jest"],
         "noFallthroughCasesInSwitch": false,
         "noImplicitAny": false,
         "noImplicitReturns": true,

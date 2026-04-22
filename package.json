@@ -1,6 +1,6 @@
 {
     "name": "@steem-monsters/dhive-sl",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "description": "Client library for the Hive blockchain.",
     "main": "dist/dhive-sl.js",
     "module": "dist/dhive-sl.esm.js",
@@ -43,9 +43,9 @@
         "@noble/secp256k1": "1.7.2",
         "bigi": "1.4.2",
         "bs58": "5.0.0",
-        "cross-fetch": "3.1.5",
-        "jsbi": "4.3.0",
-        "long": "3.2.0",
+        "cross-fetch": "3.2.0",
+        "jsbi": "4.3.2",
+        "long": "5.3.2",
         "secure-random": "1.1.2",
         "verror": "1.10.1"
     },

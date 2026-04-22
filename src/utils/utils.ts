@@ -14,9 +14,9 @@ export const enum LogLevel {
 type LogColors = keyof typeof logColors;
 
 // Logging levels: 1 = Error, 2 = Warning, 3 = Info, 4 = Debug
-export function log(msg: string, level: LogLevel = 0, color: LogColors | null = null) {
+export function log(msg: string, level: LogLevel = 4, color: LogColors | null = null) {
     if (color && logColors[color]) msg = logColors[color] + msg + logColors.Reset;
-    if (level <= (process.env.LOGGING_LEVEL || 5)) console.log(`${new Date().toLocaleString()} - ${msg}`);
+    if (level <= (process.env.LOGGING_LEVEL ? parseInt(process.env.LOGGING_LEVEL) : 4)) console.log(`${new Date().toLocaleString()} - ${msg}`);
 }
 
 const logColors = {
