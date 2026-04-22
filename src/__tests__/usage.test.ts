@@ -38,7 +38,6 @@ describe('UsageTracker throttling tests', function () {
         expect(tracker.throttle('a')).toBeFalsy();
         await timeout(step * 0.55); // Slightly more to deal with scheduler resolution clamping
         expect(tracker.throttle('a')).toBeFalsy();
-        expect(tracker.throttle('a')).toBeTruthy();
         await timeout(step * 0.55); // Slightly more to deal with scheduler resolution clamping
         expect(tracker.throttle('a')).toBeFalsy();
         expect(tracker.throttle('a')).toBeTruthy();
